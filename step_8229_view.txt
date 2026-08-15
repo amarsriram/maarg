@@ -1,0 +1,139 @@
+Created At: 2026-07-29T01:39:05+05:30
+Completed At: 2026-07-29T01:39:05+05:30
+File Path: `file:///c:/Users/amars/StudioProjects/maarg/lib/features/load_provider/presentation/tabs/post_load_tab.dart`
+Total Lines: 1720
+Total Bytes: 68418
+Showing lines 720 to 850
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+720:               fontSize: 14,
+721:               fontWeight: FontWeight.bold,
+722:               color: isActive ? Colors.white : (isDark ? Colors.white54 : Colors.black54),
+723:             ),
+724:           ),
+725:         ),
+726:         const SizedBox(height: 8),
+727:         Text(
+728:           label,
+729:           style: TextStyle(
+730:             fontSize: 10,
+731:             fontWeight: FontWeight.w600,
+732:             color: isActive ? AppColors.primaryBlue : (isDark ? Colors.white54 : Colors.black54),
+733:           ),
+734:         ),
+735:       ],
+736:     );
+737:   }
+738: 
+739:   // ─────────────────────────────────────────────────────────────────────────
+740:   // Step 1: Route & Timing — Unified Mission Control Card
+741:   // ─────────────────────────────────────────────────────────────────────────
+742: 
+743:   Widget _buildStep1(ThemeData theme, bool isDark, {required Key key}) {
+744:     final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+745: 
+746:     return Form(
+747:       key: _formKey1,
+748:       child: Column(
+749:         key: key,
+750:         children: [
+751:           Expanded(
+752:             child: ListView(
+753:               padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+754:               children: [
+755:                 // Primary Heading
+756:                 Text(
+757:                   'Where is your shipment going?',
+758:                   style: theme.textTheme.headlineSmall?.copyWith(
+759:                     fontWeight: FontWeight.w800,
+760:                     color: isDark ? Colors.white : Colors.black,
+761:                   ),
+762:                 ),
+763:                 const SizedBox(height: 4),
+764:                 Text(
+765:                   'Add pickup, delivery and schedule details',
+766:                   style: TextStyle(
+767:                     fontSize: 14,
+768:                     color: textSecondary,
+769:                   ),
+770:                 ),
+771:                 const SizedBox(height: 24),
+772: 
+773:                 // Hero Route Section
+774:                 Row(
+775:                   crossAxisAlignment: CrossAxisAlignment.start,
+776:                   children: [
+777:                     // Timeline Track
+778:                     Padding(
+779:                       padding: const EdgeInsets.only(top: 24, left: 8, right: 16),
+780:                       child: Column(
+781:                         children: [
+782:                           Container(
+783:                             width: 32,
+784:                             height: 32,
+785:                             decoration: BoxDecoration(
+786:                               shape: BoxShape.circle,
+787:                               color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+788:                             ),
+789:                             child: const Icon(Icons.location_on, color: AppColors.primaryBlue, size: 18),
+790:                           ),
+791:                           Container(
+792:                             width: 1,
+793:                             height: 36,
+794:                             color: AppColors.primaryBlue.withValues(alpha: 0.5),
+795:                           ),
+796:                           Container(
+797:                             width: 6,
+798:                             height: 6,
+799:                             decoration: BoxDecoration(
+800:                               shape: BoxShape.circle,
+801:                               color: AppColors.primaryBlue,
+802:                             ),
+803:                           ),
+804:                           Container(
+805:                             width: 1,
+806:                             height: 36,
+807:                             color: AppColors.primaryBlue.withValues(alpha: 0.5),
+808:                           ),
+809:                           Container(
+810:                             width: 32,
+811:                             height: 32,
+812:                             decoration: BoxDecoration(
+813:                               shape: BoxShape.circle,
+814:                               color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+815:                             ),
+816:                             child: const Icon(Icons.location_on, color: AppColors.primaryBlue, size: 18),
+817:                           ),
+818:                         ],
+819:                       ),
+820:                     ),
+821:                     // Cards
+822:                     Expanded(
+823:                       child: Column(
+824:                         crossAxisAlignment: CrossAxisAlignment.start,
+825:                         children: [
+826:                           _LocationCard(
+827:                             label: 'PICKUP LOCATION',
+828:                             controller: _pickupController,
+829:                             hint: 'Search pickup location',
+830:                             subtitle: 'Enter city, state or area',
+831:                             isDark: isDark,
+832:                             onTap: _selectPickupLocation,
+833:                           ),
+834:                           const SizedBox(height: 24),
+835:                           _LocationCard(
+836:                             label: 'DELIVERY LOCATION',
+837:                             controller: _dropController,
+838:                             hint: 'Search delivery location',
+839:                             subtitle: 'Enter city, state or area',
+840:                             isDark: isDark,
+841:                             onTap: _selectDropLocation,
+842:                           ),
+843:                         ],
+844:                       ),
+845:                     ),
+846:                   ],
+847:                 ),
+848:                 
+849:                 const SizedBox(height: 32),
+850:                 Divider(color: isDark ? AppColors.darkBorder : AppColors.lightBorder, height: 1),
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.

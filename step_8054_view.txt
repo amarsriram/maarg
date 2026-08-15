@@ -1,0 +1,170 @@
+Created At: 2026-07-24T14:40:12+05:30
+Completed At: 2026-07-24T14:40:12+05:30
+The following changes were made by the multi_replace_file_content tool to: c:\Users\amars\StudioProjects\maarg\lib\features\load_provider\presentation\tabs\post_load_tab.dart. If relevant, proactively run terminal commands to execute this code for the USER. Don't ask for permission.
+[diff_block_start]
+@@ -100,10 +100,11 @@
+   final _formKey2 = GlobalKey<FormState>();
+ 
+   // ── Controllers ──────────────────────────────────────────────────────────
+-  final _pickupController      = TextEditingController();
+-  final _dropController        = TextEditingController();
+-  final _pickupDateController  = TextEditingController(); // replaces _dateController
+-  final _deliveryDateController = TextEditingController();
++  // ⚠️ DEBUG: _pickup/drop/date controllers use _LoggedController for tracing.
++  final _pickupController      = _LoggedController('pickup');
++  final _dropController        = _LoggedController('drop');
++  final _pickupDateController  = _LoggedController('pickupDate');
++  final _deliveryDateController = _LoggedController('deliveryDate');
+   final _materialController    = TextEditingController();
+   final _truckTypeController   = TextEditingController();
+   final _truckOtherController  = TextEditingController();
+@@ -158,17 +158,36 @@
+   }
+ 
+   Future<void> _initDraft() async {
++    debugPrint('🔵 [_initDraft] START — uid=$_currentUid');
+     await _draftService.init();
+     final user = ref.read(authStateProvider).value;
+-    if (user == null) return;
++    if (user == null) {
++      debugPrint('🔵 [_initDraft] user=null → returning without draft restore');
++      return;
++    }
+     _currentUid = user.id;
+     final draft = _draftService.restore(user.id);
+     if (draft != null && mounted) {
++      debugPrint(
++        '🔵 [_initDraft] Draft found → calling _applyDraft()\n'
++        '   pickup="${draft.pickup}" drop="${draft.drop}"\n'
++        '   date="${draft.date}" notes="${draft.notes}"',
++      );
+       _applyDraft(draft);
+-    }
++    } else {
++      debugPrint('🔵 [_initDraft] No draft found — form stays blank. mounted=$mounted');
++    }
++    debugPrint('🔵 [_initDraft] END');
+   }
+ 
+   void _applyDraft(PostLoadDraft draft) {
++    debugPrint(
++      '🟣 [_applyDraft] START — writing all fields from draft:\n'
++      '   pickup="${draft.pickup}"\n'
++      '   drop="${draft.drop}"\n'
++      '   date="${draft.date}"\n'
++      '   notes(deliveryDate)="${draft.notes}"',
++    );
+     _pickupController.text      = draft.pickup;
+     _dropController.text        = draft.drop;
+     _pickupLocation             = draft.pickupDetails;
+@@ -184,6 +184,7 @@
+     _notesController.text       = '';
+     _lastNotes                  = '';
+     _isTruckOther               = draft.isMaterialOther;
++    debugPrint('🟣 [_applyDraft] END');
+   }
+ 
+   @override
+@@ -215,7 +215,16 @@
+ 
+   void _saveDraft() {
+     final uid = _currentUid;
+-    if (uid == null) return;
++    if (uid == null) {
++      debugPrint('🟡 [_saveDraft] uid=null → skipping save');
++      return;
++    }
++    debugPrint(
++      '🟡 [_saveDraft] SAVING — pickup="${_pickupController.text.trim()}"'
++      ' drop="${_dropController.text.trim()}"'
++      ' pickupDate="${_pickupDateController.text.trim()}"'
++      ' deliveryDate="${_deliveryDateController.text.trim()}"',
++    );
+     // Pack delivery date into the `notes` slot using a prefix to avoid schema change.
+     final deliveryTag = 'deliveryDate:${_deliveryDateController.text.trim()}';
+     _draftService.save(
+@@ -281,9 +281,18 @@
+   }
+ 
+   Future<void> _selectPickupLocation() async {
++    debugPrint(
++      '🟢 [_selectPickupLocation] ENTER — before picker:\n'
++      '   pickup="${_pickupController.text}"\n'
++      '   drop="${_dropController.text}"\n'
++      '   pickupDate="${_pickupDateController.text}"\n'
++      '   deliveryDate="${_deliveryDateController.text}"',
++    );
+     final loc = await LocationSelectorBottomSheet.show(context, title: 'Pickup Location');
+-    if (!mounted) return;
+-    if (loc != null) {
++    debugPrint('🟢 [_selectPickupLocation] RETURNED from picker — loc=${loc?.displayName ?? 'null'}');
++    if (!mounted) return;
++    if (loc != null) {
++      debugPrint('🟢 [_selectPickupLocation] Writing ONLY _pickupController + _pickupLocation');
+       setState(() {
+         _pickupLocation = loc;
+         _pickupController.text = loc.displayName;
+@@ -290,11 +290,30 @@
+-      _saveDraft();
+-    }
++      debugPrint(
++        '🟢 [_selectPickupLocation] AFTER setState:\n'
++        '   pickup="${_pickupController.text}"\n'
++        '   drop="${_dropController.text}"\n'
++        '   pickupDate="${_pickupDateController.text}"\n'
++        '   deliveryDate="${_deliveryDateController.text}"',
++      );
++      _saveDraft();
++    } else {
++      debugPrint('🟢 [_selectPickupLocation] loc=null — no state change');
++    }
++    debugPrint('🟢 [_selectPickupLocation] EXIT');
+   }
+ 
+   Future<void> _selectDropLocation() async {
++    debugPrint(
++      '🟢 [_selectDropLocation] ENTER — before picker:\n'
++      '   pickup="${_pickupController.text}"\n'
++      '   drop="${_dropController.text}"\n'
++      '   pickupDate="${_pickupDateController.text}"\n'
++      '   deliveryDate="${_deliveryDateController.text}"',
++    );
+     final loc = await LocationSelectorBottomSheet.show(context, title: 'Delivery Location');
+-    if (!mounted) return;
+-    if (loc != null) {
++    debugPrint('🟢 [_selectDropLocation] RETURNED from picker — loc=${loc?.displayName ?? 'null'}');
++    if (!mounted) return;
++    if (loc != null) {
++      debugPrint('🟢 [_selectDropLocation] Writing ONLY _dropController + _dropLocation');
+       setState(() {
+         _dropLocation = loc;
+         _dropController.text = loc.displayName;
+@@ -301,5 +301,8 @@
+       _saveDraft();
+-    }
++    } else {
++      debugPrint('🟢 [_selectDropLocation] loc=null — no state change');
++    }
++    debugPrint('🟢 [_selectDropLocation] EXIT');
+   }
+ 
+   // ─────────────────────────────────────────────────────────────────────────
+@@ -430,6 +430,7 @@
+   }
+ 
+   void _resetForm() {
++    debugPrint('🔴 [_resetForm] START — clearing all controllers');
+     _formKey1.currentState?.reset();
+     _formKey2.currentState?.reset();
+     for (final c in [
+@@ -441,6 +441,7 @@
+     _dropLocation = null;
+     _isTruckOther = false;
+     _currentStep = 0;
++    debugPrint('🔴 [_resetForm] END — NOTE: stale SharedPreferences draft NOT cleared here');
+   }
+ 
+   // ─────────────────────────────────────────────────────────────────────────
+[diff_block_end]
+
+Please note that the above snippet only shows the MODIFIED lines from the last change. It shows up to 3 lines of unchanged lines before and after the modified lines. The actual file contents may have many more lines not shown.

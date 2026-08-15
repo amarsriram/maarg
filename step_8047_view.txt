@@ -1,0 +1,244 @@
+Created At: 2026-07-24T14:39:02+05:30
+Completed At: 2026-07-24T14:39:03+05:30
+File Path: `file:///c:/Users/amars/StudioProjects/maarg/lib/features/load_provider/presentation/tabs/post_load_tab.dart`
+Total Lines: 1669
+Total Bytes: 65795
+Showing lines 55 to 290
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+55: class _PostLoadTabState extends ConsumerState<PostLoadTab> with WidgetsBindingObserver {
+56:   // Step controller — 0 = Route & Timing, 1 = Load Details
+57:   int _currentStep = 0;
+58: 
+59:   // ── Form keys (one per step for precise validation) ───────────────────────
+60:   final _formKey1 = GlobalKey<FormState>();
+61:   final _formKey2 = GlobalKey<FormState>();
+62: 
+63:   // ── Controllers ──────────────────────────────────────────────────────────
+64:   final _pickupController      = TextEditingController();
+65:   final _dropController        = TextEditingController();
+66:   final _pickupDateController  = TextEditingController(); // replaces _dateController
+67:   final _deliveryDateController = TextEditingController();
+68:   final _materialController    = TextEditingController();
+69:   final _truckTypeController   = TextEditingController();
+70:   final _truckOtherController  = TextEditingController();
+71:   final _weightController      = TextEditingController();
+72:   final _budgetController      = TextEditingController();
+73:   final _notesController       = TextEditingController();
+74: 
+75:   // ── Focus nodes ───────────────────────────────────────────────────────────
+76:   final _pickupNode       = FocusNode();
+77:   final _dropNode         = FocusNode();
+78:   final _materialNode     = FocusNode();
+79:   final _truckOtherNode   = FocusNode();
+80:   final _weightNode       = FocusNode();
+81:   final _budgetNode       = FocusNode();
+82: 
+83:   // ── Derived state ─────────────────────────────────────────────────────────
+84:   LocationModel? _pickupLocation;
+85:   LocationModel? _dropLocation;
+86:   bool _isTruckOther = false;   // true when "Other" truck card selected
+87: 
+88:   // ── Submission guard ──────────────────────────────────────────────────────
+89:   bool _isPublishing = false;
+90: 
+91:   // ── Draft ─────────────────────────────────────────────────────────────────
+92:   final _draftService = PostLoadDraftService();
+93:   String? _currentUid;
+94:   String _lastNotes = '';
+95: 
+96:   // ─────────────────────────────────────────────────────────────────────────
+97:   // Lifecycle
+98:   // ─────────────────────────────────────────────────────────────────────────
+99: 
+100:   @override
+101:   void initState() {
+102:     super.initState();
+103:     WidgetsBinding.instance.addObserver(this);
+104: 
+105:     _weightNode.addListener(() { if (!_weightNode.hasFocus) _saveDraft(); });
+106:     _budgetNode.addListener(() { if (!_budgetNode.hasFocus) _saveDraft(); });
+107:     _truckOtherNode.addListener(() { if (!_truckOtherNode.hasFocus) _saveDraft(); });
+108:     _materialNode.addListener(() { if (!_materialNode.hasFocus) _saveDraft(); });
+109:     _notesController.addListener(_onNotesChanged);
+110: 
+111:     WidgetsBinding.instance.addPostFrameCallback((_) {
+112:       _initDraft();
+113:     });
+114:   }
+115: 
+116:   void _onNotesChanged() {
+117:     if (_notesController.text != _lastNotes) {
+118:       _lastNotes = _notesController.text;
+119:     }
+120:   }
+121: 
+122:   Future<void> _initDraft() async {
+123:     await _draftService.init();
+124:     final user = ref.read(authStateProvider).value;
+125:     if (user == null) return;
+126:     _currentUid = user.id;
+127:     final draft = _draftService.restore(user.id);
+128:     if (draft != null && mounted) {
+129:       _applyDraft(draft);
+130:     }
+131:   }
+132: 
+133:   void _applyDraft(PostLoadDraft draft) {
+134:     _pickupController.text      = draft.pickup;
+135:     _dropController.text        = draft.drop;
+136:     _pickupLocation             = draft.pickupDetails;
+137:     _dropLocation               = draft.dropDetails;
+138:     _materialController.text    = draft.material;
+139:     _truckTypeController.text   = draft.truckType;
+140:     _truckOtherController.text  = draft.materialOther; // reuse materialOther slot
+141:     _weightController.text      = draft.weight;
+142:     _budgetController.text      = draft.budget;
+143:     _pickupDateController.text  = draft.date;
+144:     _deliveryDateController.text = draft.notes.startsWith('deliveryDate:')
+145:         ? draft.notes.substring('deliveryDate:'.length)
+146:         : '';
+147:     _notesController.text       = '';
+148:     _lastNotes                  = '';
+149:     _isTruckOther               = draft.isMaterialOther;
+150:   }
+151: 
+152:   @override
+153:   void didChangeAppLifecycleState(AppLifecycleState state) {
+154:     if (state == AppLifecycleState.paused ||
+155:         state == AppLifecycleState.inactive ||
+156:         state == AppLifecycleState.detached) {
+157:       _saveDraft();
+158:     }
+159:   }
+160: 
+161:   @override
+162:   void dispose() {
+163:     _saveDraft();
+164:     WidgetsBinding.instance.removeObserver(this);
+165:     for (final c in [
+166:       _pickupController, _dropController, _pickupDateController,
+167:       _deliveryDateController, _materialController, _truckTypeController,
+168:       _truckOtherController, _weightController, _budgetController, _notesController,
+169:     ]) { c.dispose(); }
+170:     for (final n in [_pickupNode, _dropNode, _materialNode, _truckOtherNode, _weightNode, _budgetNode]) {
+171:       n.dispose();
+172:     }
+173:     super.dispose();
+174:   }
+175: 
+176:   // ─────────────────────────────────────────────────────────────────────────
+177:   // Draft helpers
+178:   // ─────────────────────────────────────────────────────────────────────────
+179: 
+180:   void _saveDraft() {
+181:     final uid = _currentUid;
+182:     if (uid == null) return;
+183:     // Pack delivery date into the `notes` slot using a prefix to avoid schema change.
+184:     final deliveryTag = 'deliveryDate:${_deliveryDateController.text.trim()}';
+185:     _draftService.save(
+186:       uid: uid,
+187:       pickup: _pickupController.text.trim(),
+188:       drop: _dropController.text.trim(),
+189:       pickupDetails: _pickupLocation,
+190:       dropDetails: _dropLocation,
+191:       material: _materialController.text.trim(),
+192:       materialOther: _truckOtherController.text.trim(),
+193:       isMaterialOther: _isTruckOther,
+194:       truckType: _truckTypeController.text.trim(),
+195:       weight: _weightController.text.trim(),
+196:       budget: _budgetController.text.trim(),
+197:       date: _pickupDateController.text.trim(),
+198:       notes: deliveryTag,
+199:     );
+200:   }
+201: 
+202:   void _clearDraft() {
+203:     final uid = _currentUid;
+204:     if (uid == null) return;
+205:     _draftService.clear(uid);
+206:   }
+207: 
+208:   // ─────────────────────────────────────────────────────────────────────────
+209:   // Field actions
+210:   // ─────────────────────────────────────────────────────────────────────────
+211: 
+212:   Future<void> _selectPickupDate() async {
+213:     final date = await showDatePicker(
+214:       context: context,
+215:       initialDate: DateTime.now(),
+216:       firstDate: DateTime.now(),
+217:       lastDate: DateTime.now().add(const Duration(days: 365)),
+218:     );
+219:     if (date != null && mounted) {
+220:       final time = await showTimePicker(context: context, initialTime: TimeOfDay.now());
+221:       if (!mounted) return;
+222:       if (time != null) {
+223:         final full = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+224:         setState(() => _pickupDateController.text = full.toIso8601String());
+225:         _saveDraft();
+226:       }
+227:     }
+228:   }
+229: 
+230:   Future<void> _selectDeliveryDate() async {
+231:     final date = await showDatePicker(
+232:       context: context,
+233:       initialDate: DateTime.now(),
+234:       firstDate: DateTime.now(),
+235:       lastDate: DateTime.now().add(const Duration(days: 365)),
+236:     );
+237:     if (date != null && mounted) {
+238:       final time = await showTimePicker(context: context, initialTime: TimeOfDay.now());
+239:       if (!mounted) return;
+240:       if (time != null) {
+241:         final full = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+242:         setState(() => _deliveryDateController.text = full.toIso8601String());
+243:         _saveDraft();
+244:       }
+245:     }
+246:   }
+247: 
+248:   Future<void> _selectPickupLocation() async {
+249:     final loc = await LocationSelectorBottomSheet.show(context, title: 'Pickup Location');
+250:     if (!mounted) return;
+251:     if (loc != null) {
+252:       setState(() {
+253:         _pickupLocation = loc;
+254:         _pickupController.text = loc.displayName;
+255:       });
+256:       _saveDraft();
+257:     }
+258:   }
+259: 
+260:   Future<void> _selectDropLocation() async {
+261:     final loc = await LocationSelectorBottomSheet.show(context, title: 'Delivery Location');
+262:     if (!mounted) return;
+263:     if (loc != null) {
+264:       setState(() {
+265:         _dropLocation = loc;
+266:         _dropController.text = loc.displayName;
+267:       });
+268:       _saveDraft();
+269:     }
+270:   }
+271: 
+272:   // ─────────────────────────────────────────────────────────────────────────
+273:   // Step navigation
+274:   // ─────────────────────────────────────────────────────────────────────────
+275: 
+276:   void _goNext() {
+277:     FocusScope.of(context).unfocus();
+278:     if (!_formKey1.currentState!.validate()) return;
+279: 
+280:     // Duplicate location check
+281:     if (_pickupController.text.trim().toLowerCase() ==
+282:         _dropController.text.trim().toLowerCase()) {
+283:       ScaffoldMessenger.of(context).showSnackBar(
+284:         const SnackBar(content: Text('Pickup and delivery locations cannot be the same')),
+285:       );
+286:       return;
+287:     }
+288: 
+289:     _saveDraft();
+290:     setState(() => _currentStep = 1);
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.

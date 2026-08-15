@@ -1,0 +1,270 @@
+=== FILE: lib\auth_service.dart ===
+  Classes: AuthService
+
+=== FILE: lib\firebase_options.dart ===
+  Classes: DefaultFirebaseOptions
+
+=== FILE: lib\main.dart ===
+  Classes: AuthPage, _AuthPageState
+  Methods: main
+
+=== FILE: lib\app\app.dart ===
+  Classes: MaargApp
+  Providers: themeModeStateProvider
+
+=== FILE: lib\app\router.dart ===
+  Classes: SplashScreen, GoRouterRefreshStream
+  Providers: routerProvider
+  Methods: dispose
+
+=== FILE: lib\app\theme.dart ===
+  Classes: AppTheme
+
+=== FILE: lib\core\constants\app_colors.dart ===
+  Classes: AppColors
+
+=== FILE: lib\core\models\booking_model.dart ===
+  Classes: BookingModel
+
+=== FILE: lib\core\models\load_model.dart ===
+  Classes: LoadModel
+
+=== FILE: lib\core\models\notification_model.dart ===
+  Classes: NotificationModel
+
+=== FILE: lib\core\models\trip_event_model.dart ===
+  Classes: TripEventModel
+
+=== FILE: lib\core\models\trip_location_model.dart ===
+  Classes: TripLocationModel
+
+=== FILE: lib\core\models\trip_status.dart ===
+  Enums: TripStatus
+  Methods: canTransitionTo, fromString
+
+=== FILE: lib\core\repositories\analytics_repository.dart ===
+  Classes: ProviderAnalytics, AnalyticsRepository, TruckOwnerAnalytics
+  Providers: analyticsRepositoryProvider, providerAnalyticsProvider, truckOwnerAnalyticsProvider
+
+=== FILE: lib\core\repositories\booking_repository.dart ===
+  Classes: BookingRepository
+  Providers: bookingRepositoryProvider, loadBookingsProvider, truckOwnerActiveBookingProvider, truckOwnerBookingForLoadProvider
+
+=== FILE: lib\core\repositories\load_repository.dart ===
+  Classes: LoadRepository
+  Providers: loadRepositoryProvider, providerLoadsProvider, availableLoadsProvider, truckOwnerTripsProvider
+
+=== FILE: lib\core\repositories\location_repository.dart ===
+  Classes: LocationRepository
+  Providers: locationRepositoryProvider, tripLocationStreamProvider
+
+=== FILE: lib\core\repositories\metrics_repository.dart ===
+  Providers: providerTotalLoadsCountProvider, providerActiveShipmentsCountProvider, providerCompletedDeliveriesCountProvider, providerPendingRequestsCountProvider, truckOwnerActiveTripsCountProvider, truckOwnerCompletedTripsCountProvider, availableMarketplaceLoadsCountProvider, truckOwnerAcceptedBookingsCountProvider
+
+=== FILE: lib\core\repositories\notification_repository.dart ===
+  Classes: NotificationRepository
+  Providers: notificationRepositoryProvider, userNotificationsProvider, unreadNotificationsCountProvider
+
+=== FILE: lib\core\repositories\trip_event_repository.dart ===
+  Classes: TripEventRepository
+  Providers: tripEventRepositoryProvider, tripEventsProvider
+
+=== FILE: lib\core\services\trip_operations_service.dart ===
+  Classes: TripOperationsService
+  Providers: tripOperationsServiceProvider
+
+=== FILE: lib\core\utils\context_extensions.dart ===
+  Methods: safeGo, safePush
+
+=== FILE: lib\core\utils\currency_utils.dart ===
+  Classes: CurrencyUtils
+  Methods: formatINR
+
+=== FILE: lib\core\utils\logger_service.dart ===
+  Classes: LoggerService
+  Providers: loggerProvider
+  Methods: debug, warning, error, info, transaction
+
+=== FILE: lib\core\utils\role_guard.dart ===
+  Classes: RoleGuard
+
+=== FILE: lib\core\utils\safe_parse_utils.dart ===
+  Classes: SafeParse
+  Methods: isValidTruck, isValidBooking, safeBool, safeInt, safeDouble, safeString, isValidLoad
+
+=== FILE: lib\core\utils\string_utils.dart ===
+  Classes: StringUtils
+  Methods: capitalizeWords
+
+=== FILE: lib\core\widgets\custom_button.dart ===
+  Classes: CustomButton
+
+=== FILE: lib\core\widgets\custom_shimmer.dart ===
+  Classes: CustomShimmer, _CustomShimmerState, ShimmerListSkeleton
+  Methods: initState, dispose
+
+=== FILE: lib\core\widgets\custom_text_field.dart ===
+  Classes: CustomTextField, _CustomTextFieldState
+  Methods: initState, Function
+
+=== FILE: lib\core\widgets\premium_card.dart ===
+  Classes: PremiumCard
+
+=== FILE: lib\core\widgets\route_visualizer.dart ===
+  Classes: RouteVisualizer
+
+=== FILE: lib\core\widgets\status_badge.dart ===
+  Classes: StatusBadge
+  Enums: StatusType
+
+=== FILE: lib\core\widgets\profile\profile_avatar.dart ===
+  Classes: ProfileAvatar
+
+=== FILE: lib\core\widgets\profile\profile_info_card.dart ===
+  Classes: ProfileInfoCard
+
+=== FILE: lib\core\widgets\profile\profile_stats_card.dart ===
+  Classes: ProfileStatsCard, _StatItem, _Divider
+
+=== FILE: lib\core\widgets\profile\settings_tile.dart ===
+  Classes: SettingsTile
+
+=== FILE: lib\features\auth\data\auth_repository.dart ===
+  Classes: AuthRepository, FirebaseAuthRepository
+  Providers: authRepositoryProvider, authStateProvider
+  Methods: dispose
+
+=== FILE: lib\features\auth\domain\user_model.dart ===
+  Classes: AppUser
+  Enums: UserRole
+
+=== FILE: lib\features\auth\presentation\auth_controller.dart ===
+  Classes: AuthController
+  Providers: authControllerProvider
+
+=== FILE: lib\features\auth\presentation\auth_screen.dart ===
+  Classes: AuthScreen, _AuthScreenState
+  Methods: initState, dispose
+
+=== FILE: lib\features\auth\presentation\profile_setup_screen.dart ===
+  Classes: ProfileSetupScreen, _ProfileSetupScreenState
+  Providers: isProvider
+  Methods: dispose
+
+=== FILE: lib\features\auth\presentation\role_selection_screen.dart ===
+  Classes: RoleSelectionScreen, _RoleSelectionScreenState
+
+=== FILE: lib\features\booking\data\booking_repository.dart ===
+  Classes: BookingRepository
+  Providers: bookingRepositoryProvider
+
+=== FILE: lib\features\booking\domain\booking_model.dart ===
+  Classes: Booking
+  Enums: BookingStatus
+
+=== FILE: lib\features\booking\presentation\bookings_tab.dart ===
+  Classes: BookingsTab, _BookingsList, _PremiumBookingCard, _TimelineDot, _TimelineLine, _TimelineText
+  Methods: _calculateProgress
+
+=== FILE: lib\features\booking\presentation\booking_list_screen.dart ===
+  Classes: BookingListScreen
+
+=== FILE: lib\features\dashboard\presentation\load_detail_screen.dart ===
+  Classes: LoadDetailScreen
+  Methods: _formatDate
+
+=== FILE: lib\features\dashboard\presentation\main_dashboard_screen.dart ===
+  Classes: MainDashboardScreen, _MainDashboardScreenState
+
+=== FILE: lib\features\find_truck\domain\truck_model.dart ===
+  Classes: TruckRoute
+  Enums: TruckStatus
+
+=== FILE: lib\features\find_truck\presentation\available_trucks_tab.dart ===
+  Classes: AvailableTrucksTab, _AvailableTrucksTabState
+  Methods: dispose
+
+=== FILE: lib\features\find_truck\presentation\find_truck_screen.dart ===
+  Classes: FindTruckScreen, _FindTruckScreenState
+  Methods: _triggerSearch, _resetSearch, dispose
+
+=== FILE: lib\features\find_truck\presentation\truck_detail_screen.dart ===
+  Classes: TruckDetailScreen, _TruckDetailScreenState
+
+=== FILE: lib\features\home\presentation\home_screen.dart ===
+  Classes: HomeScreen, _MetricItem, _ActivityItem
+
+=== FILE: lib\features\home\presentation\home_tab.dart ===
+  Classes: HomeTab, _MetricCard
+
+=== FILE: lib\features\load_provider\presentation\load_provider_dashboard.dart ===
+  Classes: LoadProviderDashboard, _LoadProviderDashboardState
+
+=== FILE: lib\features\load_provider\presentation\tabs\load_provider_home_tab.dart ===
+  Classes: LoadProviderHomeTab, _SectionLabel, _KpiTile, _ShipmentCard, _MetaChip, _StatusBadge
+
+=== FILE: lib\features\load_provider\presentation\tabs\load_provider_profile_tab.dart ===
+  Classes: LoadProviderProfileTab, _LoadProviderProfileTabState
+
+=== FILE: lib\features\load_provider\presentation\tabs\post_load_tab.dart ===
+  Classes: PostLoadTab, _PostLoadTabState, _SectionHeader
+  Methods: dispose
+
+=== FILE: lib\features\load_provider\presentation\tabs\shipments_tab.dart ===
+  Classes: ShipmentsTab, _LoadsList, _ShipmentCard, _BookingRequestCard, _BookingRequestCardState
+
+=== FILE: lib\features\notifications\presentation\notifications_screen.dart ===
+  Classes: NotificationsScreen
+  Methods: _formatTimeAgo
+
+=== FILE: lib\features\notifications\presentation\notification_feed_screen.dart ===
+  Classes: NotificationFeedScreen, _NotificationCard
+  Methods: _formatTimeAgo
+
+=== FILE: lib\features\notifications\presentation\widgets\notification_badge.dart ===
+  Classes: NotificationBadge
+
+=== FILE: lib\features\post_load\presentation\post_load_screen.dart ===
+  Classes: LoadPost, LoadService, PostLoadScreen, _PostLoadScreenState
+  Methods: dispose
+
+=== FILE: lib\features\post_route\data\route_repository.dart ===
+  Classes: RouteRepository
+  Providers: routeRepositoryProvider
+
+=== FILE: lib\features\post_route\presentation\post_route_screen.dart ===
+  Classes: PostRouteScreen, _PostRouteScreenState
+  Methods: dispose
+
+=== FILE: lib\features\profile\presentation\profile_screen.dart ===
+  Classes: ProfileScreen
+
+=== FILE: lib\features\profile\presentation\profile_tab.dart ===
+  Classes: ProfileTab, _ProfileTabState
+
+=== FILE: lib\features\splash\presentation\splash_screen.dart ===
+  Classes: SplashScreen, _SplashScreenState
+  Methods: initState, _navigateToNext, dispose
+
+=== FILE: lib\features\trip\presentation\widgets\placeholder_operational_map.dart ===
+  Classes: PlaceholderOperationalMap, _GridPainter
+  Methods: shouldRepaint, paint
+
+=== FILE: lib\features\trip\presentation\widgets\trip_progress_timeline.dart ===
+  Classes: TripProgressTimeline
+
+=== FILE: lib\features\truck_owner\presentation\truck_owner_dashboard.dart ===
+  Classes: TruckOwnerDashboard, _TruckOwnerDashboardState
+
+=== FILE: lib\features\truck_owner\presentation\tabs\loads_tab.dart ===
+  Classes: LoadsTab, _LoadOpportunityCard, _LoadOpportunityCardState
+
+=== FILE: lib\features\truck_owner\presentation\tabs\trips_tab.dart ===
+  Classes: TripsTab, _TripsList, _TripCard
+
+=== FILE: lib\features\truck_owner\presentation\tabs\truck_owner_home_tab.dart ===
+  Classes: TruckOwnerHomeTab, _TruckOwnerHomeTabState, _SectionLabel, _EarningsTile, _TripMeta, _LoadCard, _UrgencyBadge
+
+=== FILE: lib\features\truck_owner\presentation\tabs\truck_owner_profile_tab.dart ===
+  Classes: TruckOwnerProfileTab, _TruckOwnerProfileTabState
+

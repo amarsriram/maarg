@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "483720676557",
+    "project_id": "maarg-527b0",
+    "storage_bucket": "maarg-527b0.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:483720676557:android:e4bcee99572421302ad584",
+        "android_client_info": {
+          "package_name": "com.maarg.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD4mPn9HrZFmR_lkK6vdcB3hGzXQfWiAwg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:483720676557:android:c59b2f8477c86e232ad584",
+        "android_client_info": {
+          "package_name": "com.maarg.app.maarg"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD4mPn9HrZFmR_lkK6vdcB3hGzXQfWiAwg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

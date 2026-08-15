@@ -1,0 +1,179 @@
+Created At: 2026-08-01T01:35:41+05:30
+Completed At: 2026-08-01T01:35:42+05:30
+File Path: `file:///c:/Users/amars/StudioProjects/maarg/lib/features/load_provider/presentation/tabs/post_load_tab.dart`
+Total Lines: 1302
+Total Bytes: 61493
+Showing lines 910 to 1080
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+910: 
+911:   // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+912:   // Step 1: Route & Timing â€” Unified Mission Control Card
+913:   // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+914: 
+915:   Widget _buildStep1(ThemeData theme, bool isDark, {required Key key}) {
+916:     final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+917:     final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+918: 
+919:     return Form(
+920:       key: _formKey1,
+921:       child: Column(
+922:         key: key,
+923:         children: [
+924:           Expanded(
+925:             child: SingleChildScrollView(
+926:               physics: const BouncingScrollPhysics(),
+927:               child: Padding(
+928:                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+929:                 child: Column(
+930:                   crossAxisAlignment: CrossAxisAlignment.stretch,
+931:                   children: [
+932:                     // Route Section Title
+933:                     Text(
+934:                       'Shipment Route',
+935:                       style: theme.textTheme.titleMedium?.copyWith(
+936:                         fontWeight: FontWeight.w700,
+937:                         color: textPrimary,
+938:                         letterSpacing: -0.2,
+939:                       ),
+940:                     ),
+941:                     const SizedBox(height: 8),
+942: 
+943:                     // Hero Route Workspace Component
+944:                     MaargRouteWorkspace(
+945:                       pickupController: _pickupController,
+946:                       dropController: _dropController,
+947:                       pickupHint: 'Select pickup city',
+948:                       dropHint: 'Select delivery city',
+949:                       isDark: isDark,
+950:                       onPickupTap: _selectPickupLocation,
+951:                       onDropTap: _selectDropLocation,
+952:                     ),
+953: 
+954:                     const SizedBox(height: 20),
+955: 
+956:                     // Schedule Section Title
+957:                     Text(
+958:                       'Schedule',
+959:                       style: theme.textTheme.titleMedium?.copyWith(
+960:                         fontWeight: FontWeight.w700,
+961:                         color: textPrimary,
+962:                         letterSpacing: -0.2,
+963:                       ),
+964:                     ),
+965:                     const SizedBox(height: 8),
+966: 
+967:                     // Date Cards Row â€” each card is full-width tappable
+968:                     IntrinsicHeight(
+969:                       child: Row(
+970:                         crossAxisAlignment: CrossAxisAlignment.stretch,
+971:                         children: [
+972:                           Expanded(
+973:                             child: _DateCard(
+974:                               label: 'PICKUP DATE',
+975:                               controller: _pickupDateController,
+976:                               hint: 'Select date',
+977:                               isDark: isDark,
+978:                               onTap: _selectPickupDate,
+979:                               formatDisplay: _formatDateDisplay,
+980:                             ),
+981:                           ),
+982:                           Padding(
+983:                             padding: const EdgeInsets.symmetric(horizontal: 8),
+984:                             child: Center(
+985:                               child: Container(
+986:                                 width: 20,
+987:                                 height: 20,
+988:                                 decoration: BoxDecoration(
+989:                                   shape: BoxShape.circle,
+990:                                   color: isDark ? AppColors.darkSurfaceCard : Colors.grey.shade200,
+991:                                 ),
+992:                                 child: Icon(Icons.arrow_forward, size: 11, color: AppColors.primaryBlue),
+993:                               ),
+994:                             ),
+995:                           ),
+996:                           Expanded(
+997:                             child: _DateCard(
+998:                               label: 'DELIVERY DATE',
+999:                               controller: _deliveryDateController,
+1000:                               hint: 'Select date',
+1001:                               isDark: isDark,
+1002:                               onTap: _selectDeliveryDate,
+1003:                               formatDisplay: _formatDateDisplay,
+1004:                             ),
+1005:                           ),
+1006:                         ],
+1007:                       ),
+1008:                     ),
+1009: 
+1010:                     const SizedBox(height: 24),
+1011: 
+1012:                     // Primary CTA â€” full-width, thumb-safe 56dp target
+1013:                     SizedBox(
+1014:                       width: double.infinity,
+1015:                       height: 56,
+1016:                       child: Material(
+1017:                         color: Colors.transparent,
+1018:                         child: InkWell(
+1019:                           onTap: _goNext,
+1020:                           borderRadius: BorderRadius.circular(12),
+1021:                           child: Ink(
+1022:                             decoration: BoxDecoration(
+1023:                               borderRadius: BorderRadius.circular(12),
+1024:                               gradient: LinearGradient(
+1025:                                 colors: [Colors.blue.shade700, AppColors.primaryBlue],
+1026:                                 begin: Alignment.centerLeft,
+1027:                                 end: Alignment.centerRight,
+1028:                               ),
+1029:                             ),
+1030:                             child: Row(
+1031:                               mainAxisAlignment: MainAxisAlignment.center,
+1032:                               children: const [
+1033:                                 Text(
+1034:                                   'Continue',
+1035:                                   style: TextStyle(
+1036:                                     fontSize: 16,
+1037:                                     fontWeight: FontWeight.bold,
+1038:                                     color: Colors.white,
+1039:                                   ),
+1040:                                 ),
+1041:                                 SizedBox(width: 8),
+1042:                                 Icon(Icons.arrow_forward, color: Colors.white, size: 18),
+1043:                               ],
+1044:                             ),
+1045:                           ),
+1046:                         ),
+1047:                       ),
+1048:                     ),
+1049: 
+1050:                     const SizedBox(height: 12),
+1051: 
+1052:                     // Footer
+1053:                     Row(
+1054:                       mainAxisAlignment: MainAxisAlignment.center,
+1055:                       children: [
+1056:                         Icon(Icons.security, size: 14, color: AppColors.primaryBlue),
+1057:                         const SizedBox(width: 6),
+1058:                         Text(
+1059:                           'Draft is automatically saved',
+1060:                           style: TextStyle(
+1061:                             fontSize: 12,
+1062:                             color: textSecondary,
+1063:                           ),
+1064:                         ),
+1065:                       ],
+1066:                     ),
+1067:                   ],
+1068:                 ),
+1069:               ),
+1070:             ),
+1071:           ),
+1072:         ],
+1073:       ),
+1074:     );
+1075:   }
+1076: 
+1077:   // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+1078:   // Step 2: Load Details
+1079:   // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+1080: 
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.

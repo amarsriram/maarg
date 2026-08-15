@@ -1,0 +1,97 @@
+Created At: 2026-08-01T01:35:21+05:30
+Completed At: 2026-08-01T01:35:22+05:30
+File Path: `file:///c:/Users/amars/StudioProjects/maarg/lib/features/load_provider/presentation/tabs/post_load_tab.dart`
+Total Lines: 1302
+Total Bytes: 61493
+Showing lines 1060 to 1148
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+1060:                           style: TextStyle(
+1061:                             fontSize: 12,
+1062:                             color: textSecondary,
+1063:                           ),
+1064:                         ),
+1065:                       ],
+1066:                     ),
+1067:                   ],
+1068:                 ),
+1069:               ),
+1070:             ),
+1071:           ),
+1072:         ],
+1073:       ),
+1074:     );
+1075:   }
+1076: 
+1077:   // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+1078:   // Step 2: Load Details
+1079:   // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+1080: 
+1081: ﻿  Widget _buildStep2(ThemeData theme, bool isDark, {required Key key}) {
+1082:     return Form(
+1083:       key: _formKey2,
+1084:       child: Column(
+1085:         key: key,
+1086:         children: [
+1087:           // ── Compact Journey Banner
+1088:           _CompactJourneyBanner(
+1089:             pickup: _shortLocation(_pickupController.text),
+1090:             drop: _shortLocation(_dropController.text),
+1091:             pickupDate: _formatDateDisplay(_pickupDateController.text),
+1092:             isDark: isDark,
+1093:             onTap: _goBack,
+1094:           ),
+1095: 
+1096:           // ── Scrollable content area
+1097:           Expanded(
+1098:             child: ListView(
+1099:               padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+1100:               children: [
+1101:                 _SectionLabel('Shipment Details', theme, isDark),
+1102:                 const SizedBox(height: 16),
+1103:                 // ── Shipment Details Workspace
+1104:                 MaargShipmentWorkspace(
+1105:                   cargoValue: _materialController.text,
+1106:                   weightValue: _weightController.text,
+1107:                   vehicleValue: _truckTypeController.text == 'Other' 
+1108:                       ? _truckOtherController.text 
+1109:                       : _truckTypeController.text,
+1110:                   isDark: isDark,
+1111:                   onCargoTap: _showCargoPicker,
+1112:                   onWeightTap: _showWeightPicker,
+1113:                   onVehicleTap: _showVehiclePicker,
+1114:                 ),
+1115:                 
+1116:                 const SizedBox(height: 48), // Bottom padding
+1117:               ],
+1118:             ),
+1119:           ),
+1120:           
+1121:           // ── Bottom CTA
+1122:           Container(
+1123:             padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+1124:             decoration: BoxDecoration(
+1125:               color: isDark ? AppColors.darkBg : AppColors.lightBg,
+1126:               boxShadow: [
+1127:                 BoxShadow(
+1128:                   color: isDark ? Colors.black26 : Colors.black.withValues(alpha: 0.05),
+1129:                   blurRadius: 10,
+1130:                   offset: const Offset(0, -4),
+1131:                 )
+1132:               ],
+1133:             ),
+1134:             child: SafeArea(
+1135:               top: false,
+1136:               child: CustomButton(
+1137:                 text: 'CONTINUE',
+1138:                 onPressed: _isPublishing ? null : _publishLoad,
+1139:                 isLoading: _isPublishing,
+1140:               ),
+1141:             ),
+1142:           ),
+1143:         ],
+1144:       ),
+1145:     );
+1146:   }
+1147: 
+1148: 
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.

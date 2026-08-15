@@ -1,0 +1,309 @@
+Created At: 2026-07-29T01:21:18+05:30
+Completed At: 2026-07-29T01:21:19+05:30
+File Path: `file:///c:/Users/amars/StudioProjects/maarg/lib/features/load_provider/presentation/tabs/post_load_tab.dart`
+Total Lines: 1738
+Total Bytes: 67701
+Showing lines 450 to 750
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+450:     } on FirebaseException catch (e) {
+451:       if (mounted) {
+452:         final message = e.code == 'unavailable'
+453:             ? 'No internet connection. Your data is saved. Please retry.'
+454:             : 'Failed to publish: ${e.message}';
+455:         ScaffoldMessenger.of(context)
+456:             .showSnackBar(SnackBar(content: Text(message), backgroundColor: AppColors.error));
+457:       }
+458:     } catch (e) {
+459:       if (mounted) {
+460:         ScaffoldMessenger.of(context).showSnackBar(
+461:           SnackBar(content: Text('Failed to publish: $e'), backgroundColor: AppColors.error),
+462:         );
+463:       }
+464:     } finally {
+465:       if (mounted) setState(() => _isPublishing = false);
+466:     }
+467:   }
+468: 
+469:   void _resetForm() {
+470:     _formKey1.currentState?.reset();
+471:     _formKey2.currentState?.reset();
+472:     for (final c in [
+473:       _pickupController, _dropController, _pickupDateController,
+474:       _deliveryDateController, _materialController, _truckTypeController,
+475:       _truckOtherController, _weightController, _budgetController, _notesController,
+476:     ]) { c.clear(); }
+477:     _lastNotes = '';
+478:     _pickupLocation = null;
+479:     _dropLocation = null;
+480:     _isTruckOther = false;
+481:     _currentStep = 0;
+482:   }
+483: 
+484:   // ─────────────────────────────────────────────────────────────────────────
+485:   // Display helpers
+486:   // ─────────────────────────────────────────────────────────────────────────
+487: 
+488:   String _formatDateDisplay(String iso) {
+489:     try {
+490:       final dt = DateTime.parse(iso);
+491:       final months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+492:       final h = dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour);
+493:       final ampm = dt.hour >= 12 ? 'PM' : 'AM';
+494:       final m = dt.minute.toString().padLeft(2, '0');
+495:       return '${dt.day} ${months[dt.month - 1]}, $h:$m $ampm';
+496:     } catch (_) {
+497:       return iso;
+498:     }
+499:   }
+500: 
+501:   String _shortLocation(String full) {
+502:     final parts = full.split(',');
+503:     return parts.first.trim().length > 20
+504:         ? '${parts.first.trim().substring(0, 18)}…'
+505:         : parts.first.trim();
+506:   }
+507: 
+508:   // ─────────────────────────────────────────────────────────────────────────
+509:   // Build
+510:   // ─────────────────────────────────────────────────────────────────────────
+511: 
+512:   @override
+513:   Widget build(BuildContext context) {
+514:     // Repost flow: populate from existing load, jump to step 2
+515:     ref.listen<LoadModel?>(repostLoadProvider, (_, next) {
+516:       if (next != null) {
+517:         setState(() {
+518:           _pickupController.text  = next.pickupLocation;
+519:           _dropController.text    = next.dropLocation;
+520:           _pickupLocation         = next.pickupLocationDetails;
+521:           _dropLocation           = next.dropLocationDetails;
+522:           _pickupDateController.text = ''; // Force fresh date
+523: 
+524:           _materialController.text = next.materialType;
+525: 
+526:           // Truck type — if in known list, select card; else mark as other
+527:           final knownTruck = AppConstants.truckTypes.contains(next.truckType);
+528:           _truckTypeController.text = knownTruck ? next.truckType : 'Other';
+529:           _isTruckOther             = !knownTruck;
+530:           _truckOtherController.text = knownTruck ? '' : next.truckType;
+531: 
+532:           _weightController.text  = next.weight.replaceAll(RegExp(r'[^0-9.]'), '');
+533:           _budgetController.text  = next.budget.replaceAll(RegExp(r'[^0-9.]'), '');
+534:           _notesController.text   = '';
+535:           _lastNotes              = '';
+536:           _deliveryDateController.text = '';
+537:           _currentStep = 0;
+538:         });
+539:         _saveDraft();
+540:         WidgetsBinding.instance.addPostFrameCallback((_) {
+541:           ref.read(repostLoadProvider.notifier).state = null;
+542:         });
+543:       }
+544:     });
+545: 
+546:     final theme = Theme.of(context);
+547:     final isDark = theme.brightness == Brightness.dark;
+548:     final bg = isDark ? AppColors.darkBg : AppColors.lightBg;
+549: 
+550:     return Scaffold(
+551:       backgroundColor: bg,
+552:       appBar: _buildAppBar(theme, isDark),
+553:       body: SafeArea(
+554:         child: AnimatedSwitcher(
+555:           duration: const Duration(milliseconds: 280),
+556:           transitionBuilder: (child, animation) => SlideTransition(
+557:             position: Tween<Offset>(
+558:               begin: _currentStep == 1
+559:                   ? const Offset(1, 0)
+560:                   : const Offset(-1, 0),
+561:               end: Offset.zero,
+562:             ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
+563:             child: child,
+564:           ),
+565:           child: _currentStep == 0
+566:               ? _buildStep1(theme, isDark, key: const ValueKey('step1'))
+567:               : _buildStep2(theme, isDark, key: const ValueKey('step2')),
+568:         ),
+569:       ),
+570:     );
+571:   }
+572: 
+573:   PreferredSizeWidget _buildAppBar(ThemeData theme, bool isDark) {
+574:     // Field-aware progress for Step 1: count filled fields out of 4
+575:     // For Step 2, show full 50%+ range
+576:     final double step1Progress;
+577:     if (_currentStep == 0) {
+578:       int filled = 0;
+579:       if (_pickupController.text.trim().isNotEmpty) filled++;
+580:       if (_dropController.text.trim().isNotEmpty) filled++;
+581:       if (_pickupDateController.text.trim().isNotEmpty) filled++;
+582:       if (_deliveryDateController.text.trim().isNotEmpty) filled++;
+583:       step1Progress = filled / 8.0; // 0..0.5 range (each field = 12.5%)
+584:     } else {
+585:       step1Progress = 0.5 + 0.5; // Step 2 = 100%
+586:     }
+587: 
+588:     return AppBar(
+589:       backgroundColor: Colors.transparent,
+590:       elevation: 0,
+591:       automaticallyImplyLeading: false,
+592:       titleSpacing: 20,
+593:       title: Text(
+594:         _currentStep == 0 ? 'Post a Load' : 'Load Details',
+595:         style: theme.textTheme.titleMedium?.copyWith(
+596:           fontWeight: FontWeight.w700,
+597:           letterSpacing: -0.3,
+598:         ),
+599:       ),
+600:       actions: [
+601:         Padding(
+602:           padding: const EdgeInsets.only(right: 20),
+603:           child: Center(
+604:             child: Text(
+605:               'Step ${_currentStep + 1}',
+606:               style: theme.textTheme.bodySmall?.copyWith(
+607:                 color: AppColors.primaryBlue,
+608:                 fontWeight: FontWeight.w700,
+609:                 letterSpacing: 0.3,
+610:               ),
+611:             ),
+612:           ),
+613:         ),
+614:       ],
+615:       bottom: PreferredSize(
+616:         preferredSize: const Size.fromHeight(3),
+617:         child: _FieldAwareProgressBar(progress: step1Progress),
+618:       ),
+619:     );
+620:   }
+621: 
+622:   // ─────────────────────────────────────────────────────────────────────────
+623:   // Step 1: Route & Timing — Unified Mission Control Card
+624:   // ─────────────────────────────────────────────────────────────────────────
+625: 
+626:   Widget _buildStep1(ThemeData theme, bool isDark, {required Key key}) {
+627:     final surfaceColor = isDark ? AppColors.darkSurface : Colors.white;
+628:     final borderColor  = isDark ? AppColors.darkBorder  : AppColors.lightBorder;
+629:     final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+630: 
+631:     final hasPickup   = _pickupController.text.trim().isNotEmpty;
+632:     final hasDrop     = _dropController.text.trim().isNotEmpty;
+633:     final hasPickDate = _pickupDateController.text.trim().isNotEmpty;
+634:     final hasDelDate  = _deliveryDateController.text.trim().isNotEmpty;
+635:     final isReady     = hasPickup && hasDrop && hasPickDate;
+636: 
+637:     return Form(
+638:       key: _formKey1,
+639:       child: Column(
+640:         key: key,
+641:         children: [
+642:           // ── Scrollable hero card + CTA ──────────────────────────────
+643:           Expanded(
+644:             child: ListView(
+645:               padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+646:               children: [
+647:                 // ━━━━ THE HERO CARD ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+648:                 Container(
+649:                   decoration: BoxDecoration(
+650:                     color: surfaceColor,
+651:                     borderRadius: BorderRadius.circular(20),
+652:                     border: Border.all(
+653:                       color: isReady
+654:                           ? AppColors.success.withValues(alpha: 0.4)
+655:                           : borderColor,
+656:                       width: isReady ? 1.5 : 1,
+657:                     ),
+658:                     boxShadow: [
+659:                       if (!isDark)
+660:                         BoxShadow(
+661:                           color: Colors.black.withValues(alpha: 0.06),
+662:                           blurRadius: 16,
+663:                           offset: const Offset(0, 4),
+664:                         ),
+665:                       if (isReady)
+666:                         BoxShadow(
+667:                           color: AppColors.success.withValues(alpha: isDark ? 0.08 : 0.06),
+668:                           blurRadius: 20,
+669:                           spreadRadius: 1,
+670:                         ),
+671:                     ],
+672:                   ),
+673:                   clipBehavior: Clip.antiAlias,
+674:                   child: Stack(
+675:                     children: [
+676:                       // ── Subtle background texture ──
+677:                       Positioned.fill(
+678:                         child: CustomPaint(
+679:                           painter: _GridTexturePainter(
+680:                             color: isDark
+681:                                 ? Colors.white.withValues(alpha: 0.015)
+682:                                 : Colors.black.withValues(alpha: 0.015),
+683:                           ),
+684:                         ),
+685:                       ),
+686:                       // ── Card content ──
+687:                       Column(
+688:                         children: [
+689:                           // ▸ ORIGIN NODE
+690:                           _LocationNode(
+691:                             controller: _pickupController,
+692:                             label: 'PICKUP',
+693:                             hint: 'Where is the cargo?',
+694:                             isOrigin: true,
+695:                             isDark: isDark,
+696:                             onTap: _selectPickupLocation,
+697:                             validator: (v) => v == null || v.trim().length < 2
+698:                                 ? 'Select pickup location'
+699:                                 : null,
+700:                           ),
+701: 
+702:                           // ▸ TIMELINE CONNECTOR
+703:                           Padding(
+704:                             padding: const EdgeInsets.only(left: 29),
+705:                             child: Row(
+706:                               children: [
+707:                                 // Vertical dashes
+708:                                 Column(
+709:                                   children: List.generate(
+710:                                     3,
+711:                                     (_) => Container(
+712:                                       margin: const EdgeInsets.symmetric(vertical: 1.5),
+713:                                       width: 1.5,
+714:                                       height: 6,
+715:                                       decoration: BoxDecoration(
+716:                                         color: hasPickup && hasDrop
+717:                                             ? AppColors.primaryBlue.withValues(alpha: 0.5)
+718:                                             : borderColor.withValues(alpha: 0.5),
+719:                                         borderRadius: BorderRadius.circular(1),
+720:                                       ),
+721:                                     ),
+722:                                   ),
+723:                                 ),
+724:                               ],
+725:                             ),
+726:                           ),
+727: 
+728:                           // ▸ DESTINATION NODE
+729:                           _LocationNode(
+730:                             controller: _dropController,
+731:                             label: 'DELIVERY',
+732:                             hint: 'Where to deliver?',
+733:                             isOrigin: false,
+734:                             isDark: isDark,
+735:                             onTap: _selectDropLocation,
+736:                             validator: (v) => v == null || v.trim().length < 2
+737:                                 ? 'Select delivery location'
+738:                                 : null,
+739:                           ),
+740: 
+741:                           // ── Divider ──
+742:                           Padding(
+743:                             padding: const EdgeInsets.symmetric(horizontal: 20),
+744:                             child: Divider(
+745:                               height: 1,
+746:                               thickness: 0.5,
+747:                               color: borderColor.withValues(alpha: 0.6),
+748:                             ),
+749:                           ),
+750: 
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.

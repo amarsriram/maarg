@@ -1,0 +1,200 @@
+Created At: 2026-08-01T01:18:33+05:30
+Completed At: 2026-08-01T01:18:34+05:30
+File Path: `file:///c:/Users/amars/StudioProjects/maarg/lib/features/load_provider/presentation/tabs/post_load_tab.dart`
+Total Lines: 1824
+Total Bytes: 85204
+Showing lines 909 to 1100
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+909:   Widget _buildStep2(ThemeData theme, bool isDark, {required Key key}) {
+910:     return Form(
+911:       key: _formKey2,
+912:       child: Column(
+913:         key: key,
+914:         children: [
+915:           // â”€â”€ Compact Journey Banner
+916:           _CompactJourneyBanner(
+917:             pickup: _shortLocation(_pickupController.text),
+918:             drop: _shortLocation(_dropController.text),
+919:             pickupDate: _formatDateDisplay(_pickupDateController.text),
+920:             isDark: isDark,
+921:             onTap: _goBack,
+922:           ),
+923: 
+924:           // â”€â”€ Scrollable content area
+925:           Expanded(
+926:             child: ListView(
+927:               padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+928:               children: [
+929:                 // â”€â”€ Truck type
+930:                 _SectionLabel('Select Vehicle', theme, isDark),
+931:                 const SizedBox(height: 24),
+932:                 _AnimatedTruckSelectionGrid(
+933:                   cards: _truckCards,
+934:                   selectedValue: _truckTypeController.text,
+935:                   isDark: isDark,
+936:                   onSelect: (value) {
+937:                     setState(() {
+938:                       _truckTypeController.text = value;
+939:                       _isTruckOther = value == 'Other';
+940:                       if (!_isTruckOther) _truckOtherController.clear();
+941:                     });
+942:                     _saveDraft();
+943:                   },
+944:                 ),
+945:                 
+946:                 // Validation wrapper for truck type
+947:                 FormField<String>(
+948:                   initialValue: _truckTypeController.text,
+949:                   validator: (_) => _truckTypeController.text.isEmpty
+950:                       ? 'Please select a vehicle type'
+951:                       : null,
+952:                   builder: (state) {
+953:                     if (state.hasError) {
+954:                       return Padding(
+955:                         padding: const EdgeInsets.only(top: 8, left: 4),
+956:                         child: Text(
+957:                           state.errorText!,
+958:                           style: TextStyle(color: theme.colorScheme.error, fontSize: 12),
+959:                         ),
+960:                       );
+961:                     }
+962:                     return const SizedBox.shrink();
+963:                   },
+964:                 ),
+965: 
+966:                 // Other truck (AnimatedSize)
+967:                 AnimatedSize(
+968:                   duration: const Duration(milliseconds: 300),
+969:                   curve: Curves.easeInOut,
+970:                   child: _isTruckOther ? Padding(
+971:                     padding: const EdgeInsets.only(top: 12),
+972:                     child: CustomTextField(
+973:                       controller: _truckOtherController,
+974:                       focusNode: _truckOtherNode,
+975:                       label: 'Specify Truck Type',
+976:                       hintText: 'e.g. Refrigerated truck',
+977:                       prefixIcon: const Icon(Icons.edit_outlined, size: 20),
+978:                       textInputAction: TextInputAction.next,
+979:                       validator: (v) => v == null || v.trim().length < 2 ? 'Required' : null,
+980:                     ),
+981:                   ) : const SizedBox.shrink(),
+982:                 ),
+983: 
+984:                 const SizedBox(height: 32),
+985: 
+986:                 // â”€â”€ Weight
+987:                 _SectionLabel('Total Weight (Tons)', theme, isDark),
+988:                 const SizedBox(height: 24),
+989:                 _WeightInputField(
+990:                   controller: _weightController,
+991:                   focusNode: _weightNode,
+992:                   isDark: isDark,
+993:                 ),
+994: 
+995:                 const SizedBox(height: 32),
+996: 
+997:                 // â”€â”€ Material
+998:                 _SectionLabel('Material Type', theme, isDark),
+999:                 const SizedBox(height: 24),
+1000:                 CustomTextField(
+1001:                   controller: _materialController,
+1002:                   focusNode: _materialNode,
+1003:                   label: 'Material / Goods',
+1004:                   hintText: 'Enter material...',
+1005:                   prefixIcon: const Icon(Icons.inventory_2_outlined, size: 20),
+1006:                   textInputAction: TextInputAction.next,
+1007:                   validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
+1008:                 ),
+1009:                 const SizedBox(height: 12),
+1010:                 _MaterialQuickChips(
+1011:                   onSelected: (mat) {
+1012:                     setState(() {
+1013:                       _materialController.text = mat;
+1014:                     });
+1015:                     _saveDraft();
+1016:                   },
+1017:                   isDark: isDark,
+1018:                 ),
+1019: 
+1020:                 const SizedBox(height: 32),
+1021: 
+1022:                 // â”€â”€ Optional: Budget
+1023:                 _SectionLabel('Budget (â‚¹) - Optional', theme, isDark),
+1024:                 const SizedBox(height: 24),
+1025:                 CustomTextField(
+1026:                   controller: _budgetController,
+1027:                   focusNode: _budgetNode,
+1028:                   label: 'Budget (â‚¹)',
+1029:                   hintText: 'e.g. 25000',
+1030:                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
+1031:                   prefixIcon: const Icon(Icons.currency_rupee_rounded, size: 20),
+1032:                   textInputAction: TextInputAction.done,
+1033:                 ),
+1034:                 
+1035:                 const SizedBox(height: 48), // Bottom padding
+1036:               ],
+1037:             ),
+1038:           ),
+1039:           
+1040:           // â”€â”€ Bottom CTA
+1041:           Container(
+1042:             padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+1043:             decoration: BoxDecoration(
+1044:               color: isDark ? AppColors.darkBg : AppColors.lightBg,
+1045:               boxShadow: [
+1046:                 BoxShadow(
+1047:                   color: isDark ? Colors.black26 : Colors.black.withValues(alpha: 0.05),
+1048:                   blurRadius: 10,
+1049:                   offset: const Offset(0, -4),
+1050:                 )
+1051:               ],
+1052:             ),
+1053:             child: SafeArea(
+1054:               top: false,
+1055:               child: CustomButton(
+1056:                 text: 'POST LOAD',
+1057:                 onPressed: _isPublishing ? null : _publishLoad,
+1058:                 isLoading: _isPublishing,
+1059:               ),
+1060:             ),
+1061:           ),
+1062:         ],
+1063:       ),
+1064:     );
+1065:   }
+1066: }
+1067: 
+1068: // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+1069: // Private helper widgets
+1070: // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+1071: 
+1072: 
+1073: class _SectionLabel extends StatelessWidget {
+1074:   final String text;
+1075:   final ThemeData theme;
+1076:   final bool isDark;
+1077:   const _SectionLabel(this.text, this.theme, this.isDark);
+1078: 
+1079:   @override
+1080:   Widget build(BuildContext context) {
+1081:     return Text(
+1082:       text,
+1083:       style: theme.textTheme.titleSmall?.copyWith(
+1084:         fontWeight: FontWeight.w700,
+1085:         color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+1086:         letterSpacing: 0.2,
+1087:       ),
+1088:     );
+1089:   }
+1090: }
+1091: 
+1092: // â”€â”€ Compact Journey Banner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+1093: 
+1094: class _CompactJourneyBanner extends StatelessWidget {
+1095:   final String pickup;
+1096:   final String drop;
+1097:   final String pickupDate;
+1098:   final bool isDark;
+1099:   final VoidCallback onTap;
+1100: 
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.

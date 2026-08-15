@@ -1,0 +1,252 @@
+Created At: 2026-07-25T22:53:45+05:30
+Completed At: 2026-07-25T22:53:45+05:30
+The following changes were made by the multi_replace_file_content tool to: c:\Users\amars\StudioProjects\maarg\lib\features\load_provider\presentation\tabs\post_load_tab.dart. If relevant, proactively run terminal commands to execute this code for the USER. Don't ask for permission.
+[diff_block_start]
+@@ -17,48 +17,6 @@
+ final repostLoadProvider = StateProvider<LoadModel?>((ref) => null);
+ 
+ // ─────────────────────────────────────────────────────────────────────────────
+-// DEBUG INSTRUMENTATION — remove before shipping to production
+-// ─────────────────────────────────────────────────────────────────────────────
+-
+-/// Returns the first stack frame that belongs to post_load_tab.dart but is
+-/// not inside _LoggedController itself, giving a clean call-site label.
+-String _callerSite() {
+-  final lines = StackTrace.current.toString().split('\n');
+-  for (final line in lines.skip(2)) {
+-    if (line.contains('post_load_tab.dart') && !line.contains('_LoggedController')) {
+-      // Extract just "method (post_load_tab.dart:NNN)" for readability.
+-      final match = RegExp(r'(\S+)\s+\(.*post_load_tab\.dart:(\d+)').firstMatch(line);
+-      if (match != null) return '${match.group(1)} :${match.group(2)}';
+-      return line.trim();
+-    }
+-  }
+-  return '(unknown caller)';
+-}
+-
+-/// Drop-in replacement for [TextEditingController] that logs every text-setter
+-/// assignment with the controller name, old value, new value, and call site.
+-class _LoggedController extends TextEditingController {
+-  final String _name;
+-  _LoggedController(this._name);
+-
+-  @override
+-  set text(String newText) {
+-    final old = super.text;
+-    if (old != newText) {
+-      debugPrint(
+-        '[CTRL] $_name\n'
+-        'Old: "${_truncate(old)}"\n'
+-        'New: "${_truncate(newText)}"\n'
+-        'Caller: ${_callerSite()}'
+-      );
+-    }
+-    super.text = newText;
+-  }
+-
+-  String _truncate(String v) => v.length > 60 ? '${v.substring(0, 57)}…' : v;
+-}
+-
+-// ─────────────────────────────────────────────────────────────────────────────
+ 
+ class _TruckCard {
+   final String value;    // Backend value — must match AppConstants.truckTypes
+@@ -101,11 +101,10 @@
+   final _formKey2 = GlobalKey<FormState>();
+ 
+   // ── Controllers ──────────────────────────────────────────────────────────
+-  // ⚠️ DEBUG: _pickup/drop/date controllers use _LoggedController for tracing.
+-  final _pickupController      = _LoggedController('pickup');
+-  final _dropController        = _LoggedController('drop');
+-  final _pickupDateController  = _LoggedController('pickupDate');
+-  final _deliveryDateController = _LoggedController('deliveryDate');
++  final _pickupController      = TextEditingController();
++  final _dropController        = TextEditingController();
++  final _pickupDateController  = TextEditingController(); // replaces _dateController
++  final _deliveryDateController = TextEditingController();
+   final _materialController    = TextEditingController();
+   final _truckTypeController   = TextEditingController();
+   final _truckOtherController  = TextEditingController();
+@@ -160,36 +160,65 @@
+   }
+ 
+   Future<void> _initDraft() async {
+-    debugPrint('[DRAFT_INIT] START — uid=$_currentUid');
+     await _draftService.init();
+     final user = ref.read(authStateProvider).value;
+-    if (user == null) {
+-      debugPrint('[DRAFT_INIT] user=null → returning without draft restore');
+-      return;
+-    }
++    if (user == null) return;
++    
+     _currentUid = user.id;
+     final draft = _draftService.restore(user.id);
+     if (draft != null && mounted) {
+-      debugPrint(
+-        '[DRAFT_INIT] Draft found → calling _applyDraft()\n'
+-        '   pickup="${draft.pickup}" drop="${draft.drop}"\n'
+-        '   date="${draft.date}" notes="${draft.notes}"',
+-      );
+-      _applyDraft(draft);
+-    } else {
+-      debugPrint('[DRAFT_INIT] No draft found — form stays blank. mounted=$mounted');
+-    }
+-    debugPrint('[DRAFT_INIT] END');
++      _showDraftResumeDialog(draft);
++    }
++  }
++
++  void _showDraftResumeDialog(PostLoadDraft draft) {
++    showModalBottomSheet(
++      context: context,
++      isDismissible: false,
++      enableDrag: false,
++      shape: const RoundedRectangleBorder(
++        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
++      ),
++      builder: (ctx) => Padding(
++        padding: const EdgeInsets.all(24.0),
++        child: Column(
++          mainAxisSize: MainAxisSize.min,
++          crossAxisAlignment: CrossAxisAlignment.stretch,
++          children: [
++            const Text(
++              'Resume Previous Draft?',
++              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
++              textAlign: TextAlign.center,
++            ),
++            const SizedBox(height: 12),
++            const Text(
++              'You have an unfinished shipment draft.',
++              style: TextStyle(fontSize: 16, color: Colors.grey),
++              textAlign: TextAlign.center,
++            ),
++            const SizedBox(height: 24),
++            CustomButton(
++              text: 'Continue Editing',
++              onPressed: () {
++                Navigator.of(ctx).pop();
++                _applyDraft(draft);
++              },
++            ),
++            const SizedBox(height: 12),
++            TextButton(
++              onPressed: () {
++                Navigator.of(ctx).pop();
++                _clearDraft();
++              },
++              child: const Text('Discard Draft', style: TextStyle(color: Colors.red)),
++            ),
++          ],
++        ),
++      ),
++    );
+   }
+ 
+   void _applyDraft(PostLoadDraft draft) {
+-    debugPrint(
+-      '[DRAFT_APPLY] START — writing all fields from draft:\n'
+-      '   pickup="${draft.pickup}"\n'
+-      '   drop="${draft.drop}"\n'
+-      '   date="${draft.date}"\n'
+-      '   notes(deliveryDate)="${draft.notes}"',
+-    );
+     _pickupController.text      = draft.pickup;
+     _dropController.text        = draft.drop;
+     _pickupLocation             = draft.pickupDetails;
+@@ -205,7 +205,6 @@
+     _notesController.text       = '';
+     _lastNotes                  = '';
+     _isTruckOther               = draft.isMaterialOther;
+-    debugPrint('[DRAFT_APPLY] END');
+   }
+ 
+   @override
+@@ -237,16 +237,7 @@
+ 
+   void _saveDraft() {
+     final uid = _currentUid;
+-    if (uid == null) {
+-      debugPrint('[DRAFT_SAVE] uid=null → skipping save');
+-      return;
+-    }
+-    debugPrint(
+-      '[DRAFT_SAVE] SAVING — pickup="${_pickupController.text.trim()}"'
+-      ' drop="${_dropController.text.trim()}"'
+-      ' pickupDate="${_pickupDateController.text.trim()}"'
+-      ' deliveryDate="${_deliveryDateController.text.trim()}"',
+-    );
++    if (uid == null) return;
+     // Pack delivery date into the `notes` slot using a prefix to avoid schema change.
+     final deliveryTag = 'deliveryDate:${_deliveryDateController.text.trim()}';
+     _draftService.save(
+@@ -312,18 +312,9 @@
+   }
+ 
+   Future<void> _selectPickupLocation() async {
+-    debugPrint(
+-      '[PICKUP] ENTER — before picker:\n'
+-      '   pickup="${_pickupController.text}"\n'
+-      '   drop="${_dropController.text}"\n'
+-      '   pickupDate="${_pickupDateController.text}"\n'
+-      '   deliveryDate="${_deliveryDateController.text}"',
+-    );
+     final loc = await LocationSelectorBottomSheet.show(context, title: 'Pickup Location');
+-    debugPrint('[PICKUP] RETURNED from picker — loc=${loc?.displayName ?? 'null'}');
+-    if (!mounted) return;
+-    if (loc != null) {
+-      debugPrint('[PICKUP] Writing ONLY _pickupController + _pickupLocation');
++    if (!mounted) return;
++    if (loc != null) {
+       setState(() {
+         _pickupLocation = loc;
+         _pickupController.text = loc.displayName;
+@@ -330,30 +330,11 @@
+-      debugPrint(
+-        '[PICKUP] AFTER setState:\n'
+-        '   pickup="${_pickupController.text}"\n'
+-        '   drop="${_dropController.text}"\n'
+-        '   pickupDate="${_pickupDateController.text}"\n'
+-        '   deliveryDate="${_deliveryDateController.text}"',
+-      );
+-      _saveDraft();
+-    } else {
+-      debugPrint('[PICKUP] loc=null — no state change');
+-    }
+-    debugPrint('[PICKUP] EXIT');
++      _saveDraft();
++    }
+   }
+ 
+   Future<void> _selectDropLocation() async {
+-    debugPrint(
+-      '[DROP] ENTER — before picker:\n'
+-      '   pickup="${_pickupController.text}"\n'
+-      '   drop="${_dropController.text}"\n'
+-      '   pickupDate="${_pickupDateController.text}"\n'
+-      '   deliveryDate="${_deliveryDateController.text}"',
+-    );
+     final loc = await LocationSelectorBottomSheet.show(context, title: 'Delivery Location');
+-    debugPrint('[DROP] RETURNED from picker — loc=${loc?.displayName ?? 'null'}');
+-    if (!mounted) return;
+-    if (loc != null) {
+-      debugPrint('[DROP] Writing ONLY _dropController + _dropLocation');
++    if (!mounted) return;
++    if (loc != null) {
+       setState(() {
+         _dropLocation = loc;
+         _dropController.text = loc.displayName;
+@@ -360,8 +360,5 @@
+       _saveDraft();
+-    } else {
+-      debugPrint('[DROP] loc=null — no state change');
+-    }
+-    debugPrint('[DROP] EXIT');
++    }
+   }
+ 
+   // ─────────────────────────────────────────────────────────────────────────
+[diff_block_end]
+
+Please note that the above snippet only shows the MODIFIED lines from the last change. It shows up to 3 lines of unchanged lines before and after the modified lines. The actual file contents may have many more lines not shown.

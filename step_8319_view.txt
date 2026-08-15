@@ -1,0 +1,199 @@
+Created At: 2026-07-29T02:25:12+05:30
+Completed At: 2026-07-29T02:25:12+05:30
+File Path: `file:///c:/Users/amars/StudioProjects/maarg/lib/features/load_provider/presentation/tabs/post_load_tab.dart`
+Total Lines: 1700
+Total Bytes: 67454
+Showing lines 660 to 850
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+660:             ),
+661:           ),
+662:         ],
+663:       ),
+664:     );
+665:   }
+666: 
+667:   Widget _buildStepper(ThemeData theme, bool isDark) {
+668:     return Padding(
+669:       padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 8),
+670:       child: Stack(
+671:         alignment: Alignment.center,
+672:         children: [
+673:           // Connecting lines
+674:           Row(
+675:             children: [
+676:               Expanded(
+677:                 child: Container(
+678:                   height: 2,
+679:                   color: _currentStep >= 1 ? AppColors.primaryBlue : (isDark ? Colors.white24 : Colors.black12),
+680:                 ),
+681:               ),
+682:               Expanded(
+683:                 child: Container(
+684:                   height: 2,
+685:                   color: _currentStep >= 2 ? AppColors.primaryBlue : (isDark ? Colors.white24 : Colors.black12),
+686:                 ),
+687:               ),
+688:             ],
+689:           ),
+690:           // Nodes
+691:           Row(
+692:             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+693:             children: [
+694:               _buildStepperNode(1, 'Route & Schedule', _currentStep >= 0, isDark),
+695:               _buildStepperNode(2, 'Load Details', _currentStep >= 1, isDark),
+696:               _buildStepperNode(3, 'Review & Publish', _currentStep >= 2, isDark),
+697:             ],
+698:           ),
+699:         ],
+700:       ),
+701:     );
+702:   }
+703: 
+704:   Widget _buildStepperNode(int stepNum, String label, bool isActive, bool isDark) {
+705:     return Column(
+706:       children: [
+707:         Container(
+708:           width: 36,
+709:           height: 28,
+710:           decoration: BoxDecoration(
+711:             shape: BoxShape.circle,
+712:             color: isActive ? AppColors.primaryBlue : (isDark ? AppColors.darkBg : AppColors.lightBg),
+713:             border: isActive ? null : Border.all(color: isDark ? Colors.white24 : Colors.black12, width: 2),
+714:             boxShadow: isActive ? [BoxShadow(color: AppColors.primaryBlue.withValues(alpha: 0.4), blurRadius: 8)] : null,
+715:           ),
+716:           alignment: Alignment.center,
+717:           child: Text(
+718:             stepNum.toString(),
+719:             style: TextStyle(
+720:               fontSize: 14,
+721:               fontWeight: FontWeight.bold,
+722:               color: isActive ? Colors.white : (isDark ? Colors.white54 : Colors.black54),
+723:             ),
+724:           ),
+725:         ),
+726:         const SizedBox(height: 8),
+727:         Text(
+728:           label,
+729:           style: TextStyle(
+730:             fontSize: 10,
+731:             fontWeight: FontWeight.w600,
+732:             color: isActive ? AppColors.primaryBlue : (isDark ? Colors.white54 : Colors.black54),
+733:           ),
+734:         ),
+735:       ],
+736:     );
+737:   }
+738: 
+739:   // ─────────────────────────────────────────────────────────────────────────
+740:   // Step 1: Route & Timing — Unified Mission Control Card
+741:   // ─────────────────────────────────────────────────────────────────────────
+742: 
+743:   Widget _buildStep1(ThemeData theme, bool isDark, {required Key key}) {
+744:     final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+745: 
+746:     return Form(
+747:       key: _formKey1,
+748:       child: Column(
+749:         key: key,
+750:         children: [
+751:           Expanded(
+752:             child: SingleChildScrollView(
+753:               physics: const BouncingScrollPhysics(),
+754:               child: Padding(
+755:                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+756:                 child: Column(
+757:                   crossAxisAlignment: CrossAxisAlignment.stretch,
+758:                   children: [
+759:                 // Primary Heading
+760:                 Text(
+761:                   'Where is your shipment going?',
+762:                   style: theme.textTheme.headlineSmall?.copyWith(
+763:                     fontWeight: FontWeight.w800,
+764:                     color: isDark ? Colors.white : Colors.black,
+765:                   ),
+766:                 ),
+767:                 const SizedBox(height: 4),
+768:                 Text(
+769:                   'Add pickup, delivery and schedule details',
+770:                   style: TextStyle(
+771:                     fontSize: 14,
+772:                     color: textSecondary,
+773:                   ),
+774:                 ),
+775:                 const SizedBox(height: 16),
+776: 
+777:                 // Hero Route Section
+778:                 Row(
+779:                   crossAxisAlignment: CrossAxisAlignment.start,
+780:                   children: [
+781:                     // Timeline Track
+782:                     Padding(
+783:                       padding: const EdgeInsets.only(top: 24, left: 8, right: 16),
+784:                       child: Column(
+785:                         children: [
+786:                           Container(
+787:                             width: 32,
+788:                             height: 32,
+789:                             decoration: BoxDecoration(
+790:                               shape: BoxShape.circle,
+791:                               color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+792:                             ),
+793:                             child: const Icon(Icons.location_on, color: AppColors.primaryBlue, size: 18),
+794:                           ),
+795:                           Container(
+796:                             width: 1,
+797:                             height: 28,
+798:                             color: AppColors.primaryBlue.withValues(alpha: 0.5),
+799:                           ),
+800:                           Container(
+801:                             width: 6,
+802:                             height: 6,
+803:                             decoration: BoxDecoration(
+804:                               shape: BoxShape.circle,
+805:                               color: AppColors.primaryBlue,
+806:                             ),
+807:                           ),
+808:                           Container(
+809:                             width: 1,
+810:                             height: 28,
+811:                             color: AppColors.primaryBlue.withValues(alpha: 0.5),
+812:                           ),
+813:                           Container(
+814:                             width: 32,
+815:                             height: 32,
+816:                             decoration: BoxDecoration(
+817:                               shape: BoxShape.circle,
+818:                               color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+819:                             ),
+820:                             child: const Icon(Icons.location_on, color: AppColors.primaryBlue, size: 18),
+821:                           ),
+822:                         ],
+823:                       ),
+824:                     ),
+825:                     // Cards
+826:                     Expanded(
+827:                       child: Column(
+828:                         crossAxisAlignment: CrossAxisAlignment.start,
+829:                         children: [
+830:                           _LocationCard(
+831:                             label: 'PICKUP LOCATION',
+832:                             controller: _pickupController,
+833:                             hint: 'Search pickup location',
+834:                             subtitle: 'Enter city, state or area',
+835:                             isDark: isDark,
+836:                             onTap: _selectPickupLocation,
+837:                           ),
+838:                           const SizedBox(height: 16),
+839:                           _LocationCard(
+840:                             label: 'DELIVERY LOCATION',
+841:                             controller: _dropController,
+842:                             hint: 'Search delivery location',
+843:                             subtitle: 'Enter city, state or area',
+844:                             isDark: isDark,
+845:                             onTap: _selectDropLocation,
+846:                           ),
+847:                         ],
+848:                       ),
+849:                     ),
+850:                   ],
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.

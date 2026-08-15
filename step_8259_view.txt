@@ -1,0 +1,119 @@
+Created At: 2026-07-29T01:55:56+05:30
+Completed At: 2026-07-29T01:55:56+05:30
+File Path: `file:///c:/Users/amars/StudioProjects/maarg/lib/features/load_provider/presentation/tabs/post_load_tab.dart`
+Total Lines: 1723
+Total Bytes: 68495
+Showing lines 740 to 850
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+740:   // Step 1: Route & Timing — Unified Mission Control Card
+741:   // ─────────────────────────────────────────────────────────────────────────
+742: 
+743:   Widget _buildStep1(ThemeData theme, bool isDark, {required Key key}) {
+744:     final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+745: 
+746:     return Form(
+747:       key: _formKey1,
+748:       child: Column(
+749:         key: key,
+750:         children: [
+751:           Expanded(
+752:             child: Padding(
+753:               padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+754:               child: Column(
+755:                 crossAxisAlignment: CrossAxisAlignment.stretch,
+756:                 children: [
+757:                 // Primary Heading
+758:                 Text(
+759:                   'Where is your shipment going?',
+760:                   style: theme.textTheme.headlineSmall?.copyWith(
+761:                     fontWeight: FontWeight.w800,
+762:                     color: isDark ? Colors.white : Colors.black,
+763:                   ),
+764:                 ),
+765:                 const SizedBox(height: 4),
+766:                 Text(
+767:                   'Add pickup, delivery and schedule details',
+768:                   style: TextStyle(
+769:                     fontSize: 14,
+770:                     color: textSecondary,
+771:                   ),
+772:                 ),
+773:                 const SizedBox(height: 16),
+774: 
+775:                 // Hero Route Section
+776:                 Row(
+777:                   crossAxisAlignment: CrossAxisAlignment.start,
+778:                   children: [
+779:                     // Timeline Track
+780:                     Padding(
+781:                       padding: const EdgeInsets.only(top: 24, left: 8, right: 16),
+782:                       child: Column(
+783:                         children: [
+784:                           Container(
+785:                             width: 32,
+786:                             height: 32,
+787:                             decoration: BoxDecoration(
+788:                               shape: BoxShape.circle,
+789:                               color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+790:                             ),
+791:                             child: const Icon(Icons.location_on, color: AppColors.primaryBlue, size: 18),
+792:                           ),
+793:                           Container(
+794:                             width: 1,
+795:                             height: 36,
+796:                             color: AppColors.primaryBlue.withValues(alpha: 0.5),
+797:                           ),
+798:                           Container(
+799:                             width: 6,
+800:                             height: 6,
+801:                             decoration: BoxDecoration(
+802:                               shape: BoxShape.circle,
+803:                               color: AppColors.primaryBlue,
+804:                             ),
+805:                           ),
+806:                           Container(
+807:                             width: 1,
+808:                             height: 36,
+809:                             color: AppColors.primaryBlue.withValues(alpha: 0.5),
+810:                           ),
+811:                           Container(
+812:                             width: 32,
+813:                             height: 32,
+814:                             decoration: BoxDecoration(
+815:                               shape: BoxShape.circle,
+816:                               color: isDark ? AppColors.darkSurfaceCard : Colors.white,
+817:                             ),
+818:                             child: const Icon(Icons.location_on, color: AppColors.primaryBlue, size: 18),
+819:                           ),
+820:                         ],
+821:                       ),
+822:                     ),
+823:                     // Cards
+824:                     Expanded(
+825:                       child: Column(
+826:                         crossAxisAlignment: CrossAxisAlignment.start,
+827:                         children: [
+828:                           _LocationCard(
+829:                             label: 'PICKUP LOCATION',
+830:                             controller: _pickupController,
+831:                             hint: 'Search pickup location',
+832:                             subtitle: 'Enter city, state or area',
+833:                             isDark: isDark,
+834:                             onTap: _selectPickupLocation,
+835:                           ),
+836:                           const SizedBox(height: 16),
+837:                           _LocationCard(
+838:                             label: 'DELIVERY LOCATION',
+839:                             controller: _dropController,
+840:                             hint: 'Search delivery location',
+841:                             subtitle: 'Enter city, state or area',
+842:                             isDark: isDark,
+843:                             onTap: _selectDropLocation,
+844:                           ),
+845:                         ],
+846:                       ),
+847:                     ),
+848:                   ],
+849:                 ),
+850:                 
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.

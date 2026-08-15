@@ -1,0 +1,109 @@
+Created At: 2026-08-01T01:23:13+05:30
+Completed At: 2026-08-01T01:23:14+05:30
+File Path: `file:///c:/Users/amars/StudioProjects/maarg/lib/features/load_provider/presentation/tabs/post_load_tab.dart`
+Total Lines: 1824
+Total Bytes: 85204
+Showing lines 500 to 600
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+500: 
+501:   String _shortLocation(String full) {
+502:     final parts = full.split(',');
+503:     return parts.first.trim().length > 20
+504:         ? '${parts.first.trim().substring(0, 18)}â€¦'
+505:         : parts.first.trim();
+506:   }
+507: 
+508:   // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+509:   // Build
+510:   // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+511: 
+512:   @override
+513:   Widget build(BuildContext context) {
+514:     // Repost flow: populate from existing load, jump to step 2
+515:     ref.listen<LoadModel?>(repostLoadProvider, (_, next) {
+516:       if (next != null) {
+517:         setState(() {
+518:           _pickupController.text  = next.pickupLocation;
+519:           _dropController.text    = next.dropLocation;
+520:           _pickupLocation         = next.pickupLocationDetails;
+521:           _dropLocation           = next.dropLocationDetails;
+522:           _pickupDateController.text = ''; // Force fresh date
+523: 
+524:           _materialController.text = next.materialType;
+525: 
+526:           // Truck type â€” if in known list, select card; else mark as other
+527:           final knownTruck = AppConstants.truckTypes.contains(next.truckType);
+528:           _truckTypeController.text = knownTruck ? next.truckType : 'Other';
+529:           _isTruckOther             = !knownTruck;
+530:           _truckOtherController.text = knownTruck ? '' : next.truckType;
+531: 
+532:           _weightController.text  = next.weight.replaceAll(RegExp(r'[^0-9.]'), '');
+533:           _budgetController.text  = next.budget.replaceAll(RegExp(r'[^0-9.]'), '');
+534:           _notesController.text   = '';
+535:           _lastNotes              = '';
+536:           _deliveryDateController.text = '';
+537:           _currentStep = 0;
+538:         });
+539:         _saveDraft();
+540:         WidgetsBinding.instance.addPostFrameCallback((_) {
+541:           ref.read(repostLoadProvider.notifier).state = null;
+542:         });
+543:       }
+544:     });
+545: 
+546:     final theme = Theme.of(context);
+547:     final isDark = theme.brightness == Brightness.dark;
+548:     final bg = isDark ? AppColors.darkBg : AppColors.lightBg;
+549: 
+550:     return Scaffold(
+551:       backgroundColor: bg,
+552:       // Removed appBar for custom header
+553:       body: SafeArea(
+554:         child: Column(
+555:           crossAxisAlignment: CrossAxisAlignment.stretch,
+556:           children: [
+557:             _buildCustomHeader(theme, isDark),
+558:             _buildStepper(theme, isDark),
+559:             Expanded(
+560:               child: AnimatedSwitcher(
+561:                 duration: const Duration(milliseconds: 280),
+562:                 transitionBuilder: (child, animation) => SlideTransition(
+563:                   position: Tween<Offset>(
+564:                     begin: _currentStep == 1
+565:                         ? const Offset(1, 0)
+566:                         : const Offset(-1, 0),
+567:                     end: Offset.zero,
+568:                   ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
+569:                   child: child,
+570:                 ),
+571:                 child: _currentStep == 0
+572:                     ? _buildStep1(theme, isDark, key: const ValueKey('step1'))
+573:                     : _buildStep2(theme, isDark, key: const ValueKey('step2')),
+574:               ),
+575:             ),
+576:           ],
+577:         ),
+578:       ),
+579:     );
+580:   }
+581: 
+582:   Widget _buildCustomHeader(ThemeData theme, bool isDark) {
+583:     return Padding(
+584:       padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+585:       child: Row(
+586:         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+587:         children: [
+588:           Row(
+589:             children: [
+590:               InkWell(
+591:                 onTap: () {
+592:                   // E.g., pop navigation if needed, or reset form.
+593:                   // For now, if step is > 0, go back, else do nothing.
+594:                   if (_currentStep > 0) {
+595:                     _goBack();
+596:                   } else {
+597:                     if (Navigator.of(context).canPop()) {
+598:                       Navigator.of(context).pop();
+599:                     }
+600:                   }
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.

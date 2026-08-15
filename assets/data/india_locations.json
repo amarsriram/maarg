@@ -1,0 +1,72 @@
+[
+  {
+    "id": "loc_1",
+    "displayName": "Visakhapatnam, Andhra Pradesh",
+    "state": "Andhra Pradesh",
+    "district": "Visakhapatnam",
+    "city": "Visakhapatnam"
+  },
+  {
+    "id": "loc_2",
+    "displayName": "Hyderabad, Telangana",
+    "state": "Telangana",
+    "district": "Hyderabad",
+    "city": "Hyderabad"
+  },
+  {
+    "id": "loc_3",
+    "displayName": "Bengaluru, Karnataka",
+    "state": "Karnataka",
+    "district": "Bengaluru Urban",
+    "city": "Bengaluru"
+  },
+  {
+    "id": "loc_4",
+    "displayName": "Chennai, Tamil Nadu",
+    "state": "Tamil Nadu",
+    "district": "Chennai",
+    "city": "Chennai"
+  },
+  {
+    "id": "loc_5",
+    "displayName": "Mumbai, Maharashtra",
+    "state": "Maharashtra",
+    "district": "Mumbai City",
+    "city": "Mumbai"
+  },
+  {
+    "id": "loc_6",
+    "displayName": "Delhi, Delhi",
+    "state": "Delhi",
+    "district": "Central Delhi",
+    "city": "Delhi"
+  },
+  {
+    "id": "loc_7",
+    "displayName": "Kolkata, West Bengal",
+    "state": "West Bengal",
+    "district": "Kolkata",
+    "city": "Kolkata"
+  },
+  {
+    "id": "loc_8",
+    "displayName": "Pune, Maharashtra",
+    "state": "Maharashtra",
+    "district": "Pune",
+    "city": "Pune"
+  },
+  {
+    "id": "loc_9",
+    "displayName": "Ahmedabad, Gujarat",
+    "state": "Gujarat",
+    "district": "Ahmedabad",
+    "city": "Ahmedabad"
+  },
+  {
+    "id": "loc_10",
+    "displayName": "Surat, Gujarat",
+    "state": "Gujarat",
+    "district": "Surat",
+    "city": "Surat"
+  }
+]

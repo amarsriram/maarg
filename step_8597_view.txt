@@ -1,0 +1,384 @@
+Created At: 2026-08-01T01:35:31+05:30
+Completed At: 2026-08-01T01:35:31+05:30
+File Path: `file:///c:/Users/amars/StudioProjects/maarg/lib/features/load_provider/presentation/tabs/post_load_tab.dart`
+Total Lines: 1302
+Total Bytes: 61493
+Showing lines 360 to 735
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+360:   }
+361: 
+362:   void _goBack() {
+363:     FocusScope.of(context).unfocus();
+364:     setState(() => _currentStep = 0);
+365:   }
+366: 
+367:   // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+368:   // Submission
+369:   // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+370: 
+371: ﻿  void _showVehiclePicker() {
+372:     final theme = Theme.of(context);
+373:     final isDark = theme.brightness == Brightness.dark;
+374:     showModalBottomSheet(
+375:       context: context,
+376:       isScrollControlled: true,
+377:       backgroundColor: isDark ? AppColors.darkSurfaceCard : Colors.white,
+378:       shape: const RoundedRectangleBorder(
+379:         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+380:       ),
+381:       builder: (ctx) => Padding(
+382:         padding: EdgeInsets.only(
+383:           left: 20,
+384:           right: 20,
+385:           top: 24,
+386:           bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+387:         ),
+388:         child: Column(
+389:           mainAxisSize: MainAxisSize.min,
+390:           crossAxisAlignment: CrossAxisAlignment.stretch,
+391:           children: [
+392:             Text('Select Vehicle', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+393:             const SizedBox(height: 20),
+394:             _AnimatedTruckSelectionGrid(
+395:               cards: _truckCards,
+396:               selectedValue: _truckTypeController.text,
+397:               isDark: isDark,
+398:               onSelect: (value) {
+399:                 setState(() {
+400:                   _truckTypeController.text = value;
+401:                   _isTruckOther = value == 'Other';
+402:                   if (!_isTruckOther) _truckOtherController.clear();
+403:                 });
+404:                 _saveDraft();
+405:                 if (value != 'Other') {
+406:                   Navigator.pop(ctx);
+407:                 }
+408:               },
+409:             ),
+410:             if (_isTruckOther) ...[
+411:               const SizedBox(height: 16),
+412:               CustomTextField(
+413:                 controller: _truckOtherController,
+414:                 focusNode: _truckOtherNode,
+415:                 label: 'Specify Truck Type',
+416:                 hintText: 'e.g. Refrigerated truck',
+417:                 prefixIcon: const Icon(Icons.edit_outlined, size: 20),
+418:                 textInputAction: TextInputAction.done,
+419:                 onSubmitted: (_) {
+420:                   _saveDraft();
+421:                   Navigator.pop(ctx);
+422:                 },
+423:               ),
+424:               const SizedBox(height: 16),
+425:               CustomButton(
+426:                 text: 'SAVE',
+427:                 onPressed: () {
+428:                   if (_truckOtherController.text.trim().length >= 2) {
+429:                     _saveDraft();
+430:                     Navigator.pop(ctx);
+431:                   }
+432:                 },
+433:               ),
+434:             ]
+435:           ],
+436:         ),
+437:       ),
+438:     );
+439:   }
+440: 
+441:   void _showWeightPicker() {
+442:     final theme = Theme.of(context);
+443:     final isDark = theme.brightness == Brightness.dark;
+444:     showModalBottomSheet(
+445:       context: context,
+446:       isScrollControlled: true,
+447:       backgroundColor: isDark ? AppColors.darkSurfaceCard : Colors.white,
+448:       shape: const RoundedRectangleBorder(
+449:         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+450:       ),
+451:       builder: (ctx) => Padding(
+452:         padding: EdgeInsets.only(
+453:           left: 20,
+454:           right: 20,
+455:           top: 24,
+456:           bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+457:         ),
+458:         child: Column(
+459:           mainAxisSize: MainAxisSize.min,
+460:           crossAxisAlignment: CrossAxisAlignment.stretch,
+461:           children: [
+462:             Text('Total Weight (Tons)', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+463:             const SizedBox(height: 20),
+464:             _WeightInputField(
+465:               controller: _weightController,
+466:               focusNode: _weightNode,
+467:               isDark: isDark,
+468:             ),
+469:             const SizedBox(height: 24),
+470:             CustomButton(
+471:               text: 'SAVE',
+472:               onPressed: () {
+473:                 _saveDraft();
+474:                 Navigator.pop(ctx);
+475:               },
+476:             ),
+477:           ],
+478:         ),
+479:       ),
+480:     );
+481:   }
+482: 
+483:   void _showCargoPicker() {
+484:     final theme = Theme.of(context);
+485:     final isDark = theme.brightness == Brightness.dark;
+486:     showModalBottomSheet(
+487:       context: context,
+488:       isScrollControlled: true,
+489:       backgroundColor: isDark ? AppColors.darkSurfaceCard : Colors.white,
+490:       shape: const RoundedRectangleBorder(
+491:         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+492:       ),
+493:       builder: (ctx) => Padding(
+494:         padding: EdgeInsets.only(
+495:           left: 20,
+496:           right: 20,
+497:           top: 24,
+498:           bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+499:         ),
+500:         child: Column(
+501:           mainAxisSize: MainAxisSize.min,
+502:           crossAxisAlignment: CrossAxisAlignment.stretch,
+503:           children: [
+504:             Text('Material / Goods', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+505:             const SizedBox(height: 20),
+506:             CustomTextField(
+507:               controller: _materialController,
+508:               focusNode: _materialNode,
+509:               label: 'Material / Goods',
+510:               hintText: 'Enter material...',
+511:               prefixIcon: const Icon(Icons.inventory_2_outlined, size: 20),
+512:               textInputAction: TextInputAction.done,
+513:               onSubmitted: (_) {
+514:                 _saveDraft();
+515:                 Navigator.pop(ctx);
+516:               },
+517:             ),
+518:             const SizedBox(height: 12),
+519:             _MaterialQuickChips(
+520:               onSelected: (mat) {
+521:                 setState(() {
+522:                   _materialController.text = mat;
+523:                 });
+524:                 _saveDraft();
+525:                 Navigator.pop(ctx);
+526:               },
+527:               isDark: isDark,
+528:             ),
+529:             const SizedBox(height: 24),
+530:             CustomButton(
+531:               text: 'SAVE',
+532:               onPressed: () {
+533:                 _saveDraft();
+534:                 Navigator.pop(ctx);
+535:               },
+536:             ),
+537:           ],
+538:         ),
+539:       ),
+540:     );
+541:   }
+542: 
+543:   Future<void> _publishLoad() async {
+544:     if (_isPublishing) return;
+545:     if (!_formKey2.currentState!.validate()) return;
+546: 
+547:     // Weight validation
+548:     final w = double.tryParse(_weightController.text.trim());
+549:     if (w == null || w <= 0) {
+550:       _weightNode.requestFocus();
+551:       return;
+552:     }
+553:     final b = double.tryParse(_budgetController.text.trim());
+554:     if (b == null || b <= 0) {
+555:       _budgetNode.requestFocus();
+556:       return;
+557:     }
+558: 
+559:     final user = ref.read(authStateProvider).value;
+560:     if (user == null) {
+561:       if (mounted) {
+562:         ScaffoldMessenger.of(context).showSnackBar(
+563:           const SnackBar(content: Text('Error: User not found. Please relogin.')),
+564:         );
+565:       }
+566:       return;
+567:     }
+568: 
+569:     setState(() => _isPublishing = true);
+570: 
+571:     try {
+572:       final repo = ref.read(loadRepositoryProvider);
+573:       final truckValue = _isTruckOther
+574:           ? _truckOtherController.text.trim()
+575:           : _truckTypeController.text.trim();
+576: 
+577:       final newLoad = LoadModel(
+578:         loadId: const Uuid().v4(),
+579:         providerUid: user.id,
+580:         providerName: user.providerDisplayName,
+581:         pickupLocation: _pickupController.text.trim(),
+582:         pickupLocationDetails: _pickupLocation,
+583:         dropLocation: _dropController.text.trim(),
+584:         dropLocationDetails: _dropLocation,
+585:         materialType: _materialController.text.trim(),
+586:         truckType: truckValue,
+587:         weight: '${_weightController.text.trim()} Tons',
+588:         budget: 'â‚¹${_budgetController.text.trim()}',
+589:         pickupDate: _pickupDateController.text.trim(),
+590:         notes: _deliveryDateController.text.trim().isNotEmpty
+591:             ? 'Delivery: ${_formatDateDisplay(_deliveryDateController.text.trim())}'
+592:             : null,
+593:         status: 'open',
+594:         createdAt: DateTime.now(),
+595:         updatedAt: DateTime.now(),
+596:       );
+597: 
+598:       await repo.createLoad(newLoad).timeout(const Duration(seconds: 15));
+599: 
+600:       _clearDraft();
+601: 
+602:       if (mounted) {
+603:         ScaffoldMessenger.of(context).showSnackBar(
+604:           const SnackBar(
+605:             content: Text('Load published successfully!'),
+606:             backgroundColor: AppColors.success,
+607:           ),
+608:         );
+609:         _resetForm();
+610:         widget.onTabChange?.call(0);
+611:       }
+612:     } on TimeoutException {
+613:       if (mounted) {
+614:         ScaffoldMessenger.of(context).showSnackBar(
+615:           const SnackBar(
+616:             content: Text('Connection timed out. Your data is saved. Please retry.'),
+617:             backgroundColor: AppColors.warning,
+618:             duration: Duration(seconds: 5),
+619:           ),
+620:         );
+621:       }
+622:     } on FirebaseException catch (e) {
+623:       if (mounted) {
+624:         final message = e.code == 'unavailable'
+625:             ? 'No internet connection. Your data is saved. Please retry.'
+626:             : 'Failed to publish: ${e.message}';
+627:         ScaffoldMessenger.of(context)
+628:             .showSnackBar(SnackBar(content: Text(message), backgroundColor: AppColors.error));
+629:       }
+630:     } catch (e) {
+631:       if (mounted) {
+632:         ScaffoldMessenger.of(context).showSnackBar(
+633:           SnackBar(content: Text('Failed to publish: $e'), backgroundColor: AppColors.error),
+634:         );
+635:       }
+636:     } finally {
+637:       if (mounted) setState(() => _isPublishing = false);
+638:     }
+639:   }
+640: 
+641:   void _resetForm() {
+642:     _formKey1.currentState?.reset();
+643:     _formKey2.currentState?.reset();
+644:     for (final c in [
+645:       _pickupController, _dropController, _pickupDateController,
+646:       _deliveryDateController, _materialController, _truckTypeController,
+647:       _truckOtherController, _weightController, _budgetController, _notesController,
+648:     ]) { c.clear(); }
+649:     _lastNotes = '';
+650:     _pickupLocation = null;
+651:     _dropLocation = null;
+652:     _isTruckOther = false;
+653:     _currentStep = 0;
+654:   }
+655: 
+656:   // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+657:   // Display helpers
+658:   // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+659: 
+660:   String _formatDateDisplay(String iso) {
+661:     try {
+662:       final dt = DateTime.parse(iso);
+663:       final months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+664:       final h = dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour);
+665:       final ampm = dt.hour >= 12 ? 'PM' : 'AM';
+666:       final m = dt.minute.toString().padLeft(2, '0');
+667:       return '${dt.day} ${months[dt.month - 1]}, $h:$m $ampm';
+668:     } catch (_) {
+669:       return iso;
+670:     }
+671:   }
+672: 
+673:   String _shortLocation(String full) {
+674:     final parts = full.split(',');
+675:     return parts.first.trim().length > 20
+676:         ? '${parts.first.trim().substring(0, 18)}â€¦'
+677:         : parts.first.trim();
+678:   }
+679: 
+680:   // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+681:   // Build
+682:   // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+683: 
+684:   @override
+685:   Widget build(BuildContext context) {
+686:     // Repost flow: populate from existing load, jump to step 2
+687:     ref.listen<LoadModel?>(repostLoadProvider, (_, next) {
+688:       if (next != null) {
+689:         setState(() {
+690:           _pickupController.text  = next.pickupLocation;
+691:           _dropController.text    = next.dropLocation;
+692:           _pickupLocation         = next.pickupLocationDetails;
+693:           _dropLocation           = next.dropLocationDetails;
+694:           _pickupDateController.text = ''; // Force fresh date
+695: 
+696:           _materialController.text = next.materialType;
+697: 
+698:           // Truck type â€” if in known list, select card; else mark as other
+699:           final knownTruck = AppConstants.truckTypes.contains(next.truckType);
+700:           _truckTypeController.text = knownTruck ? next.truckType : 'Other';
+701:           _isTruckOther             = !knownTruck;
+702:           _truckOtherController.text = knownTruck ? '' : next.truckType;
+703: 
+704:           _weightController.text  = next.weight.replaceAll(RegExp(r'[^0-9.]'), '');
+705:           _budgetController.text  = next.budget.replaceAll(RegExp(r'[^0-9.]'), '');
+706:           _notesController.text   = '';
+707:           _lastNotes              = '';
+708:           _deliveryDateController.text = '';
+709:           _currentStep = 0;
+710:         });
+711:         _saveDraft();
+712:         WidgetsBinding.instance.addPostFrameCallback((_) {
+713:           ref.read(repostLoadProvider.notifier).state = null;
+714:         });
+715:       }
+716:     });
+717: 
+718:     final theme = Theme.of(context);
+719:     final isDark = theme.brightness == Brightness.dark;
+720:     final bg = isDark ? AppColors.darkBg : AppColors.lightBg;
+721: 
+722:     return Scaffold(
+723:       backgroundColor: bg,
+724:       // Removed appBar for custom header
+725:       body: SafeArea(
+726:         child: Column(
+727:           crossAxisAlignment: CrossAxisAlignment.stretch,
+728:           children: [
+729:             _buildCustomHeader(theme, isDark),
+730:             _buildStepper(theme, isDark),
+731:             Expanded(
+732:               child: AnimatedSwitcher(
+733:                 duration: const Duration(milliseconds: 280),
+734:                 transitionBuilder: (child, animation) => SlideTransition(
+735:                   position: Tween<Offset>(
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.
