@@ -11,6 +11,12 @@ final bookingRepositoryProvider = Provider<BookingRepository>((ref) {
   return BookingRepository(FirebaseFirestore.instance, logger);
 });
 
+// Stream of all bookings ordered by createdAt descending
+final allBookingsStreamProvider = StreamProvider.autoDispose<QuerySnapshot>((ref) {
+  final repo = ref.watch(bookingRepositoryProvider);
+  return repo.watchAllBookings();
+});
+
 // Stream of bookings for a specific load
 final loadBookingsProvider = StreamProvider.autoDispose.family<List<BookingModel>, String>((ref, loadId) {
   final user = ref.watch(authStateProvider).value;
@@ -83,6 +89,10 @@ class BookingRepository {
   BookingRepository(this._firestore, this._logger);
 
   CollectionReference get _bookings => _firestore.collection('bookings');
+
+  Stream<QuerySnapshot> watchAllBookings() {
+    return _bookings.orderBy('createdAt', descending: true).snapshots();
+  }
 
   Future<void> createBooking(BookingModel booking) async {
     _logger.debug('Attempting to create booking for load ${booking.loadId}', tag: 'BookingRepository');

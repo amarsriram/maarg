@@ -10,20 +10,40 @@ service cloud.firestore {
     }
 
     match /loads/{loadId} {
-      allow read, create, delete:
+      allow read:
         if request.auth != null;
+
+      allow create:
+        if request.auth != null
+        && request.resource.data.providerUid == request.auth.uid;
+
+      allow delete:
+        if request.auth != null
+        && request.auth.uid == resource.data.providerUid;
 
       allow update:
         if request.auth != null
         && (
-          // If not transitioning TO completed, or already completed, allow
-          request.resource.data.status != 'completed'
-          || resource.data.status == 'completed'
-          // If transitioning TO completed, enforce all security constraints
+          // 1. Provider (Load Owner) update
+          (
+            request.auth.uid == resource.data.providerUid
+            && request.resource.data.providerUid == resource.data.providerUid
+            && (request.resource.data.status != 'completed' || resource.data.status == 'completed')
+          )
+          // 2. Assigned Truck Owner status update (non-completed)
+          || (
+            request.auth.uid == resource.data.assignedTruckOwnerUid
+            && request.resource.data.providerUid == resource.data.providerUid
+            && request.resource.data.assignedTruckOwnerUid == resource.data.assignedTruckOwnerUid
+            && request.resource.data.status != 'completed'
+          )
+          // 3. Assigned Truck Owner completion update (requires confirmed payment)
           || (
             request.resource.data.status == 'completed'
             && resource.data.status == 'delivered'
             && request.auth.uid == resource.data.assignedTruckOwnerUid
+            && request.resource.data.providerUid == resource.data.providerUid
+            && request.resource.data.assignedTruckOwnerUid == resource.data.assignedTruckOwnerUid
             && exists(/databases/$(database)/documents/payments/$(loadId))
             && get(/databases/$(database)/documents/payments/$(loadId)).data.status == 'confirmed'
           )
@@ -68,10 +88,45 @@ service cloud.firestore {
 
       // UPDATE: Only participants can update trip state.
       allow update: if request.auth != null
-        && (request.auth.uid == resource.data.providerUid || request.auth.uid == resource.data.truckOwnerUid);
+        && (request.auth.uid == resource.data.providerUid || request.auth.uid == resource.data.truckOwnerUid)
+        && request.resource.data.providerUid == resource.data.providerUid
+        && request.resource.data.truckOwnerUid == resource.data.truckOwnerUid
+        && request.resource.data.loadId == resource.data.loadId;
 
       // DELETE: Disallowed to prevent state loss.
       allow delete: if false;
+
+      // SUBCOLLECTION: Location tracking for active trips
+      match /locations/{locationId} {
+        allow read: if request.auth != null && (
+          get(/databases/$(database)/documents/trips/$(tripId)).data.providerUid == request.auth.uid ||
+          get(/databases/$(database)/documents/trips/$(tripId)).data.truckOwnerUid == request.auth.uid
+        );
+
+        allow create, update: if request.auth != null && (
+          get(/databases/$(database)/documents/trips/$(tripId)).data.truckOwnerUid == request.auth.uid
+        );
+
+        allow delete: if false;
+      }
+    }
+
+    match /trucks/{truckId} {
+      allow read: if request.auth != null;
+
+      allow create: if request.auth != null && (
+        !('userId' in request.resource.data) || request.resource.data.userId == request.auth.uid
+      ) && (
+        !('ownerId' in request.resource.data) || request.resource.data.ownerId == request.auth.uid
+      ) && (
+        !('ownerUid' in request.resource.data) || request.resource.data.ownerUid == request.auth.uid
+      );
+
+      allow update, delete: if request.auth != null && (
+        resource.data.userId == request.auth.uid ||
+        resource.data.ownerId == request.auth.uid ||
+        resource.data.ownerUid == request.auth.uid
+      );
     }
 
     match /notifications/{notificationId} {

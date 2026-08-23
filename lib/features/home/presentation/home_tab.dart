@@ -1,7 +1,7 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/repositories/load_repository.dart';
 import '../../../core/utils/currency_utils.dart';
 import '../../../core/utils/safe_parse_utils.dart';
 import '../../../core/utils/string_utils.dart';
@@ -78,12 +78,8 @@ class HomeTab extends ConsumerWidget {
             ),
             
             // StreamBuilder controls the entire body so we can derive metrics
-            StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('loads')
-                  .where('userId', isEqualTo: user.id)
-                  .orderBy('createdAt', descending: true)
-                  .snapshots(),
+            StreamBuilder(
+              stream: ref.watch(loadRepositoryProvider).watchUserLoads(user.id),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return SliverList(

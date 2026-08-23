@@ -1,20 +1,21 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/repositories/truck_repository.dart';
 import '../../../core/utils/currency_utils.dart';
 import '../../../core/utils/safe_parse_utils.dart';
 import '../../../core/utils/string_utils.dart';
 import '../../../core/widgets/custom_shimmer.dart';
 
-class AvailableTrucksTab extends StatefulWidget {
+class AvailableTrucksTab extends ConsumerStatefulWidget {
   const AvailableTrucksTab({super.key});
 
   @override
-  State<AvailableTrucksTab> createState() => _AvailableTrucksTabState();
+  ConsumerState<AvailableTrucksTab> createState() => _AvailableTrucksTabState();
 }
 
-class _AvailableTrucksTabState extends State<AvailableTrucksTab> {
+class _AvailableTrucksTabState extends ConsumerState<AvailableTrucksTab> {
   final _searchController = TextEditingController();
   String _searchQuery = '';
   String _selectedFilter = 'All';
@@ -135,8 +136,8 @@ class _AvailableTrucksTabState extends State<AvailableTrucksTab> {
           
           // Results Section with Firestore Stream
           Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance.collection('trucks').snapshots(),
+            child: StreamBuilder(
+              stream: ref.watch(truckRepositoryProvider).watchAvailableTrucks(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const ShimmerListSkeleton();

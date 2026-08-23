@@ -34,6 +34,12 @@ final availableLoadsProvider = StreamProvider.autoDispose<List<LoadModel>>((ref)
   });
 });
 
+// Stream of user load snapshots for home dashboard metrics
+final userLoadsStreamProvider = StreamProvider.autoDispose.family<QuerySnapshot, String>((ref, uid) {
+  final repo = ref.watch(loadRepositoryProvider);
+  return repo.watchUserLoads(uid);
+});
+
 // Stream of trips assigned to a specific truck owner
 final truckOwnerTripsProvider = StreamProvider.autoDispose.family<List<LoadModel>, String>((ref, uid) {
   final user = ref.watch(authStateProvider).value;
@@ -53,6 +59,13 @@ class LoadRepository {
   LoadRepository(this._firestore);
 
   CollectionReference get _loads => _firestore.collection('loads');
+
+  Stream<QuerySnapshot> watchUserLoads(String uid) {
+    return _loads
+        .where('userId', isEqualTo: uid)
+        .orderBy('createdAt', descending: true)
+        .snapshots();
+  }
 
   Future<void> createLoad(LoadModel load) async {
     final docRef = _loads.doc();

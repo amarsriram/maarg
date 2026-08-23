@@ -1,7 +1,8 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/repositories/booking_repository.dart';
 import '../../../core/utils/currency_utils.dart';
 import '../../../core/utils/safe_parse_utils.dart';
 import '../../../core/utils/string_utils.dart';
@@ -46,18 +47,16 @@ class BookingsTab extends StatelessWidget {
   }
 }
 
-class _BookingsList extends StatelessWidget {
+class _BookingsList extends ConsumerWidget {
   final bool isActiveTab;
   
   const _BookingsList({required this.isActiveTab});
 
   @override
-  Widget build(BuildContext context) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('bookings')
-          .orderBy('createdAt', descending: true)
-          .snapshots(),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final repo = ref.watch(bookingRepositoryProvider);
+    return StreamBuilder(
+      stream: repo.watchAllBookings(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const ShimmerListSkeleton();

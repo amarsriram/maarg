@@ -16,6 +16,7 @@ abstract class AuthRepository {
   Future<void> logout();
   Stream<AppUser?> authStateChanges();
   AppUser? get currentUser;
+  Stream<DocumentSnapshot> userDocumentStream(String uid);
 }
 
 /// Firebase implementation of AuthRepository for production.
@@ -228,6 +229,11 @@ class FirebaseAuthRepository implements AuthRepository {
   }
 
   void dispose() {}
+
+  @override
+  Stream<DocumentSnapshot> userDocumentStream(String uid) {
+    return _firestore.collection('users').doc(uid).snapshots();
+  }
 }
 
 UserRole _roleFromString(String? roleStr) {
@@ -255,6 +261,12 @@ UserRole _roleFromString(String? roleStr) {
 
   return parsedRole;
 }
+
+// Riverpod Provider for User Document Stream
+final userDocumentStreamProvider = StreamProvider.autoDispose.family<DocumentSnapshot, String>((ref, uid) {
+  final repo = ref.watch(authRepositoryProvider);
+  return repo.userDocumentStream(uid);
+});
 
 // Riverpod Provider for AuthRepository
 final authRepositoryProvider = Provider<AuthRepository>((ref) {

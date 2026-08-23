@@ -1,10 +1,10 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/safe_parse_utils.dart';
+import '../../auth/data/auth_repository.dart';
 import '../../auth/presentation/auth_controller.dart';
 
 class ProfileTab extends ConsumerStatefulWidget {
@@ -68,10 +68,10 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
                   ),
                 ),
                 child: SafeArea(
-                  child: StreamBuilder<DocumentSnapshot>(
+                  child: StreamBuilder(
                     // Fetch real user data from the 'users' collection
                     stream: user != null 
-                      ? FirebaseFirestore.instance.collection('users').doc(user.uid).snapshots()
+                      ? ref.watch(authRepositoryProvider).userDocumentStream(user.uid)
                       : const Stream.empty(),
                     builder: (context, snapshot) {
                       String displayName = user?.email?.split('@').first.toUpperCase() ?? 'LOGISTICS CO.';
