@@ -13,6 +13,7 @@ import '../../../../core/widgets/contact_exchange_card.dart';
 import '../../../../core/repositories/payment_repository.dart';
 import '../../../../core/widgets/payment_status_card.dart';
 import '../../../auth/data/auth_repository.dart';
+import '../../../dashboard/presentation/load_detail_screen.dart';
 
 class TripsTab extends ConsumerWidget {
   const TripsTab({super.key});
@@ -221,148 +222,189 @@ class _TripsList extends StatelessWidget {
   }
 }
 
-class _HistoryCard extends StatelessWidget {
+class _HistoryCard extends ConsumerWidget {
   const _HistoryCard({required this.trip, required this.isDark});
   
   final LoadModel trip;
   final bool isDark;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final pickupParsed = LoadFormatters.parseLocation(trip.pickupLocation);
     final dropParsed = LoadFormatters.parseLocation(trip.dropLocation);
     final payoutVal = LoadFormatters.parseBudgetString(trip.budget);
     final primaryText = isDark ? Colors.white : Colors.black;
     final secondaryText = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
     final tertiaryText = isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary;
-    
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Row 1: Route & Payout
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      pickupParsed.city,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: primaryText,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 2),
-                      child: Icon(Icons.arrow_downward_rounded, size: 14, color: isDark ? Colors.white30 : Colors.black38),
-                    ),
-                    Text(
-                      dropParsed.city,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: primaryText,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 16),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    payoutVal > 0 ? LoadFormatters.formatCompactInr(payoutVal) : '₹0',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      color: payoutVal > 0 ? AppColors.primaryLight : tertiaryText,
-                    ),
+
+    // Change #1: Watch real payment state — no mock data.
+    final paymentAsync = ref.watch(paymentStreamProvider(trip.loadId));
+    final isPaymentConfirmed = paymentAsync.whenOrNull(
+      data: (payment) => payment?.status == 'confirmed',
+    ) ?? false;
+
+    return GestureDetector(
+      // Change #2: Tap opens the existing Load Command Center for this trip's load.
+      onTap: trip.loadId.isNotEmpty
+          ? () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => LoadDetailScreen(
+                    loadId: trip.loadId,
+                    initialLoad: trip,
                   ),
-                  if (payoutVal > 0)
-                    Text(
-                      'Payout Received',
-                      style: TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primaryLight.withValues(alpha: 0.7),
-                      ),
-                    ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          
-          // Row 2: Cargo & Vehicle
-          Text(
-            LoadFormatters.formatCompatibilityLine(trip.materialType, trip.weight, trip.truckType),
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              color: isDark ? Colors.white70 : Colors.black87,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 16),
-          
-          // Row 3: Bottom Metadata
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            decoration: BoxDecoration(
-              color: isDark ? AppColors.darkBg.withValues(alpha: 0.5) : AppColors.lightBg,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                ),
+              )
+          : null,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkSurface : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Row 1: Route & Payout
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: Row(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.business_center_outlined, size: 12, color: tertiaryText),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          trip.providerName,
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                            color: secondaryText,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                      Text(
+                        pickupParsed.city,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: primaryText,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 2),
+                        child: Icon(Icons.arrow_downward_rounded, size: 14, color: isDark ? Colors.white30 : Colors.black38),
+                      ),
+                      Text(
+                        dropParsed.city,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: primaryText,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
                 ),
-                Text(
-                  LoadFormatters.formatPickupDate(trip.pickupDate),
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: tertiaryText,
-                  ),
+                const SizedBox(width: 16),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      payoutVal > 0 ? LoadFormatters.formatCompactInr(payoutVal) : '₹0',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: payoutVal > 0 ? AppColors.primaryLight : tertiaryText,
+                      ),
+                    ),
+                    if (payoutVal > 0)
+                      Text(
+                        'Payout Received',
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primaryLight.withValues(alpha: 0.7),
+                        ),
+                      ),
+                    // Change #1: Payment Done badge — shown only when payment.status == 'confirmed'.
+                    if (isPaymentConfirmed) ...[
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: AppColors.success.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: AppColors.success.withValues(alpha: 0.4)),
+                        ),
+                        child: const Text(
+                          'Payment Done',
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.success,
+                            letterSpacing: 0.3,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ],
             ),
-          ),
-        ],
+            const SizedBox(height: 16),
+            
+            // Row 2: Cargo & Vehicle
+            Text(
+              LoadFormatters.formatCompatibilityLine(trip.materialType, trip.weight, trip.truckType),
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: isDark ? Colors.white70 : Colors.black87,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 16),
+            
+            // Row 3: Bottom Metadata
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.darkBg.withValues(alpha: 0.5) : AppColors.lightBg,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Icon(Icons.business_center_outlined, size: 12, color: tertiaryText),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            trip.providerName,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                              color: secondaryText,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Text(
+                    LoadFormatters.formatPickupDate(trip.pickupDate),
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: tertiaryText,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
