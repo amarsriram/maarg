@@ -6,8 +6,12 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/models/load_model.dart';
 import '../../../../core/models/trip_status.dart';
 import '../../../../core/repositories/load_repository.dart';
+import '../../../../core/repositories/contact_exchange_repository.dart';
 import '../../../../core/services/trip_operations_service.dart';
 import '../../../../core/utils/load_formatters.dart';
+import '../../../../core/widgets/contact_exchange_card.dart';
+import '../../../../core/repositories/payment_repository.dart';
+import '../../../../core/widgets/payment_status_card.dart';
 import '../../../auth/data/auth_repository.dart';
 
 class TripsTab extends ConsumerWidget {
@@ -452,6 +456,47 @@ class _ActiveTripWorkspaceState extends ConsumerState<_ActiveTripWorkspace> {
     }
   }
 
+  Future<void> _advanceStatusForLoad(LoadModel trip, TripStatus nextStatus) async {
+    final user = ref.read(authStateProvider).value;
+    if (user == null) return;
+
+    setState(() => _isUpdating = true);
+    try {
+      await ref.read(tripOperationsServiceProvider)
+          .advanceLoadStatus(trip, nextStatus, user)
+          .timeout(const Duration(seconds: 8));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Status updated to ${nextStatus.displayName}'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    } on TimeoutException {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Waiting for internet connection...\nYour action will continue automatically when connected.'),
+            backgroundColor: AppColors.warning,
+            duration: Duration(seconds: 5),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString().replaceAll("Exception: ", "")}'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isUpdating = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final trip = widget.activeTrip;
@@ -520,7 +565,34 @@ class _ActiveTripWorkspaceState extends ConsumerState<_ActiveTripWorkspace> {
 
                 // ── C. Shipment Summary ──
                 _buildSummary(trip),
-                const SizedBox(height: 32),
+                const SizedBox(height: 24),
+
+                // ── Contact Exchange (above status — driver sees contact immediately) ──
+                Builder(
+                  builder: (context) {
+                    final user = ref.watch(authStateProvider).value;
+                    final bookingId = user != null ? '${trip.loadId}_${user.id}' : null;
+                    if (bookingId == null) return const SizedBox.shrink();
+
+                    return ref.watch(contactExchangeProvider(bookingId)).when(
+                      data: (exchange) => Padding(
+                        padding: const EdgeInsets.only(bottom: 24),
+                        child: ContactExchangeCard(
+                          currentUserUid: user!.id,
+                          exchange: exchange,
+                        ),
+                      ),
+                      loading: () => Padding(
+                        padding: const EdgeInsets.only(bottom: 24),
+                        child: ContactExchangeCard(
+                          currentUserUid: user!.id,
+                          exchange: null,
+                        ),
+                      ),
+                      error: (err, stack) => const SizedBox.shrink(),
+                    );
+                  },
+                ),
 
                 // ── D. Trip Lifecycle Progress ──
                 _buildProgress(trip),
@@ -868,19 +940,24 @@ class _ActiveTripWorkspaceState extends ConsumerState<_ActiveTripWorkspace> {
   }
 
   Widget _buildDeliveredState() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.success.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.success.withValues(alpha: 0.2)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    final trip = widget.activeTrip!;
+    final user = ref.read(authStateProvider).value;
+    if (user == null) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Delivery completion banner
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: AppColors.success.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.success.withValues(alpha: 0.2)),
+          ),
+          child: Row(
             children: [
-              const Icon(Icons.check_circle, color: AppColors.success, size: 20),
+              const Icon(Icons.check_circle, color: AppColors.success, size: 18),
               const SizedBox(width: 8),
               const Text(
                 'DELIVERY COMPLETED',
@@ -893,27 +970,54 @@ class _ActiveTripWorkspaceState extends ConsumerState<_ActiveTripWorkspace> {
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          Text(
-            'Driver delivery completed.\nWaiting for provider confirmation.',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w500,
-              color: widget.isDark ? Colors.white : Colors.black,
-              height: 1.4,
-            ),
+        ),
+        const SizedBox(height: 16),
+        // Live payment actions — same logic as _buildPendingCard
+        ref.watch(paymentStreamProvider(trip.loadId)).when(
+          data: (payment) => Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              PaymentStatusCard(
+                payment: payment,
+                load: trip,
+                currentUser: user,
+                isDark: widget.isDark,
+              ),
+              if (payment != null && payment.status == 'confirmed') ...[
+                const SizedBox(height: 12),
+                ElevatedButton(
+                  onPressed: _isUpdating
+                      ? null
+                      : () => _advanceStatusForLoad(trip, TripStatus.completed),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.success,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: _isUpdating
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Text('COMPLETE TRIP',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 15)),
+                ),
+              ],
+            ],
           ),
-          const SizedBox(height: 16),
-          Text(
-            'Your operational work on this trip is complete. The trip will move to Completed once confirmed by the provider.',
-            style: TextStyle(
-              fontSize: 13,
-              color: widget.isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-              height: 1.4,
-            ),
+          loading: () => const SizedBox.shrink(),
+          error: (err, _) => Text(
+            'Error loading payment state.',
+            style: TextStyle(color: AppColors.error, fontSize: 12),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -1036,12 +1140,20 @@ class _ActiveTripWorkspaceState extends ConsumerState<_ActiveTripWorkspace> {
     final secondaryText =
         widget.isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
 
+    final paymentState = ref.watch(paymentStreamProvider(trip.loadId));
+    final payment = paymentState.value;
+    final isConfirmed = payment != null && payment.status == 'confirmed';
+    
+    final badgeColor = isConfirmed ? AppColors.success : AppColors.warning;
+    final badgeText = isConfirmed ? 'Payment Confirmed' : 'Payment Pending';
+    final badgeIcon = isConfirmed ? Icons.check_circle_rounded : Icons.hourglass_bottom_rounded;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.warning.withValues(alpha: 0.04),
+        color: badgeColor.withValues(alpha: 0.04),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.warning.withValues(alpha: 0.25)),
+        border: Border.all(color: badgeColor.withValues(alpha: 0.25)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1052,13 +1164,13 @@ class _ActiveTripWorkspaceState extends ConsumerState<_ActiveTripWorkspace> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: AppColors.warning.withValues(alpha: 0.12),
+                  color: badgeColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(5),
                 ),
-                child: const Text(
+                child: Text(
                   'DELIVERED',
                   style: TextStyle(
-                    color: AppColors.warning,
+                    color: badgeColor,
                     fontSize: 9,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 0.8,
@@ -1066,14 +1178,14 @@ class _ActiveTripWorkspaceState extends ConsumerState<_ActiveTripWorkspace> {
                 ),
               ),
               const SizedBox(width: 8),
-              Icon(Icons.hourglass_bottom_rounded, size: 13, color: AppColors.warning),
+              Icon(badgeIcon, size: 13, color: badgeColor),
               const SizedBox(width: 4),
               Expanded(
                 child: Text(
-                  'Awaiting provider confirmation',
+                  badgeText,
                   style: TextStyle(
                     fontSize: 11,
-                    color: AppColors.warning,
+                    color: badgeColor,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -1129,6 +1241,44 @@ class _ActiveTripWorkspaceState extends ConsumerState<_ActiveTripWorkspace> {
                 ),
               ),
             ],
+          ),
+
+          // Payment settlement — shown for every delivered trip
+          const SizedBox(height: 12),
+          paymentState.when(
+            data: (paymentData) => Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                PaymentStatusCard(
+                  payment: paymentData,
+                  load: trip,
+                  currentUser: ref.read(authStateProvider).value!,
+                  isDark: widget.isDark,
+                ),
+                if (paymentData != null && paymentData.status == 'confirmed') ...[
+                  const SizedBox(height: 12),
+                  ElevatedButton(
+                    onPressed: _isUpdating ? null : () => _advanceStatusForLoad(trip, TripStatus.completed),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.success,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: _isUpdating
+                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Text('COMPLETE TRIP', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                  ),
+                ],
+              ],
+            ),
+            loading: () => const SizedBox.shrink(),
+            error: (err, stack) => Text(
+              'Error loading payment state.',
+              style: TextStyle(color: AppColors.error, fontSize: 12),
+            ),
           ),
         ],
       ),

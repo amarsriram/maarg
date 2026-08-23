@@ -1,6 +1,7 @@
 {
   "projects": {
-    "staging": "maarg-527b0"
+    "staging": "maarg-527b0",
+    "default": "maarg-527b0"
   },
   "targets": {},
   "etags": {}

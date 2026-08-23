@@ -8,7 +8,7 @@ plugins {
 }
 
 android {
-    namespace = "com.maarg.app.maarg"
+    namespace = "com.maarg.app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -19,7 +19,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.maarg.app.maarg"
+        applicationId = "com.maarg.app"
         // Mappls SDK requires minSdk 21. Set explicitly to avoid flutter.minSdkVersion defaulting lower.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion

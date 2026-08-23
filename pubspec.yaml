@@ -39,9 +39,13 @@ dependencies:
   firebase_core: ^4.9.0
   firebase_auth: ^6.5.1
   cloud_firestore: ^6.4.1
+  firebase_analytics: ^12.4.6
+  firebase_crashlytics: ^5.2.7
   uuid: ^4.5.3
+  url_launcher: ^6.3.1
   shared_preferences: ^2.3.3
   mappls_gl: ^2.0.5
+  firebase_app_check: ^0.4.6
 
 dev_dependencies:
   flutter_test:

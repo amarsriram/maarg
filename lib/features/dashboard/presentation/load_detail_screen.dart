@@ -4,11 +4,19 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/models/load_model.dart';
+import '../../../../core/repositories/contact_exchange_repository.dart';
 import '../../../../core/repositories/trip_event_repository.dart';
+import '../../../../core/repositories/payment_repository.dart';
+import '../../../../core/repositories/load_repository.dart';
 import '../../../../core/services/trip_operations_service.dart';
 import '../../../../core/utils/load_formatters.dart';
+import '../../../../core/widgets/contact_exchange_card.dart';
+import '../../../../core/widgets/payment_status_card.dart';
+import '../../../../core/widgets/rich_location_card.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../trip/presentation/widgets/trip_progress_timeline.dart';
+import '../../../../core/models/trip_status.dart';
+import '../../../../core/services/analytics_service.dart';
 
 class LoadDetailScreen extends ConsumerWidget {
   const LoadDetailScreen({super.key, required this.loadId, required this.initialLoad});
@@ -42,7 +50,23 @@ class LoadDetailScreen extends ConsumerWidget {
       return const SizedBox.shrink();
     }
 
-    final load = initialLoad; // Fallback, we should make it live
+    final isProviderFallback = user.id == initialLoad.providerUid;
+    final liveLoads = isProviderFallback ? ref.watch(providerLoadsProvider(user.id)).valueOrNull : null;
+    final load = liveLoads?.firstWhere((l) => l.loadId == loadId, orElse: () => initialLoad) ?? initialLoad;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      AnalyticsService.logLoadViewed(
+        loadId: load.loadId,
+        originCity: load.pickupLocation,
+        destinationCity: load.dropLocation,
+        vehicleType: load.truckType,
+        budget: int.tryParse(load.budget.replaceAll(RegExp(r'[^0-9]'), '')),
+      );
+    });
+
+    final isProvider = user.id == load.providerUid;
+    final targetTruckOwnerUid = isProvider ? load.assignedTruckOwnerUid : user.id;
+    final bookingId = targetTruckOwnerUid != null ? '${load.loadId}_$targetTruckOwnerUid' : null;
 
     Future<void> deleteLoad() async {
       final confirmed = await showDialog<bool>(
@@ -162,84 +186,18 @@ class LoadDetailScreen extends ConsumerWidget {
             const SizedBox(height: 24),
 
             // Route
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.darkSurface : Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
-              ),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.location_on, color: AppColors.primaryBlue),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Pickup',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
-                              ),
-                            ),
-                            Text(
-                              load.pickupLocation,
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: isDark ? Colors.white : Colors.black,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 11),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: Container(
-                        width: 2,
-                        height: 24,
-                        color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-                      ),
-                    ),
-                  ),
-                  Row(
-                    children: [
-                      const Icon(Icons.flag_rounded, color: AppColors.success),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Drop-off',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
-                              ),
-                            ),
-                            Text(
-                              load.dropLocation,
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: isDark ? Colors.white : Colors.black,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+            RichLocationCard(
+              label: 'PICKUP',
+              fallbackAddress: load.pickupLocation,
+              locationDetails: load.pickupLocationDetails,
+              isDark: isDark,
+            ),
+            const SizedBox(height: 12),
+            RichLocationCard(
+              label: 'DELIVERY',
+              fallbackAddress: load.dropLocation,
+              locationDetails: load.dropLocationDetails,
+              isDark: isDark,
             ),
             const SizedBox(height: 24),
 
@@ -265,6 +223,26 @@ class LoadDetailScreen extends ConsumerWidget {
             TripProgressTimeline(currentStatus: load.tripStatus, isDark: isDark),
             
             const SizedBox(height: 32),
+
+            // Contact Exchange
+            if (bookingId != null)
+              ref.watch(contactExchangeProvider(bookingId)).when(
+                data: (exchange) => Padding(
+                  padding: const EdgeInsets.only(bottom: 32),
+                  child: ContactExchangeCard(
+                    currentUserUid: user.id,
+                    exchange: exchange,
+                  ),
+                ),
+                loading: () => Padding(
+                  padding: const EdgeInsets.only(bottom: 32),
+                  child: ContactExchangeCard(
+                    currentUserUid: user.id,
+                    exchange: null,
+                  ),
+                ),
+                error: (err, stack) => const SizedBox.shrink(),
+              ),
 
             // Assignment
             Text(
@@ -352,6 +330,26 @@ class LoadDetailScreen extends ConsumerWidget {
                 error: (err, _) => Center(child: Text('Error: $err')),
               ),
             ),
+            
+            // Payment block — only visible after delivery
+            if (load.tripStatus == TripStatus.delivered ||
+                load.tripStatus == TripStatus.completed) ...[
+              const SizedBox(height: 24),
+              ref.watch(paymentStreamProvider(load.loadId)).when(
+                data: (payment) => PaymentStatusCard(
+                  payment: payment,
+                  load: load,
+                  currentUser: user,
+                  isDark: isDark,
+                ),
+                loading: () => const SizedBox.shrink(),
+                error: (err, stack) => Text(
+                  'Error loading payment state.',
+                  style: TextStyle(color: AppColors.error, fontSize: 12),
+                ),
+              ),
+            ],
+            
             const SizedBox(height: 40),
           ],
         ),

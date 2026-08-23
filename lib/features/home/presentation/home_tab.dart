@@ -59,7 +59,7 @@ class HomeTab extends ConsumerWidget {
                         ),
                       ),
                       Text(
-                        user.email.split('@').first.toUpperCase(),
+                        (user.email ?? 'USER').split('@').first.toUpperCase(),
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),

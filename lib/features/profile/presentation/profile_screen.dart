@@ -91,7 +91,7 @@ class ProfileScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    user.email,
+                    user.email ?? '',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                     ),

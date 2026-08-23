@@ -7,9 +7,12 @@ import '../domain/user_model.dart';
 
 /// Abstract AuthRepository defining standard authentication contract.
 abstract class AuthRepository {
-  Future<AppUser?> login(String email, String password);
-  Future<AppUser?> register(String email, String password);
+  Future<void> ensureInitialProfile();
   Future<AppUser?> updateRole(UserRole role);
+  Future<void> completeProfile({
+    required String name,
+    String? region,
+  });
   Future<void> logout();
   Stream<AppUser?> authStateChanges();
   AppUser? get currentUser;
@@ -21,69 +24,32 @@ class FirebaseAuthRepository implements AuthRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   @override
-  Future<AppUser?> login(String email, String password) async {
-    final UserCredential cred = await _auth.signInWithEmailAndPassword(email: email, password: password);
-    final uid = cred.user?.uid;
-    if (uid == null) return null;
-    final doc = await _firestore.collection('users').doc(uid).get();
-    final data = doc.data() ?? {};
-    
-    bool profileCompleted = data['profileCompleted'] as bool? ?? false;
-    final String? roleStr = data['role'] as String?;
-    final String normalizedRole = (roleStr ?? '').trim().toLowerCase();
+  Future<void> ensureInitialProfile() async {
+    final user = _auth.currentUser;
+    if (user == null) return;
 
-    // Silent migration for supplier role
-    if (normalizedRole == 'supplier') {
-      await _firestore.collection('users').doc(uid).set(
-        {'role': 'provider'},
-        SetOptions(merge: true),
-      );
+    final docRef = _firestore.collection('users').doc(user.uid);
+
+    try {
+      await _firestore.runTransaction((transaction) async {
+        final snapshot = await transaction.get(docRef);
+        if (!snapshot.exists) {
+          transaction.set(docRef, {
+            'uid': user.uid,
+            'role': 'none',
+            'profileCompleted': false,
+            'phoneNumber': user.phoneNumber,
+            'createdAt': FieldValue.serverTimestamp(),
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+        }
+      });
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('FIRESTORE ERROR (ensureInitialProfile): $e');
+      }
+      rethrow;
     }
-    
-    final bool hasLegacyData = (data['name'] as String?)?.trim().isNotEmpty == true || 
-                               (data['fullName'] as String?)?.trim().isNotEmpty == true ||
-                               (data['companyName'] as String?)?.trim().isNotEmpty == true;
-    
-    // Silent migration for legacy existing users only
-    if (!profileCompleted && roleStr != null && roleStr != 'none' && hasLegacyData) {
-      await _firestore.collection('users').doc(uid).set(
-        {'profileCompleted': true},
-        SetOptions(merge: true),
-      );
-      profileCompleted = true;
-    }
-
-    return AppUser(
-      id: uid,
-      email: email,
-      name: data['name'] ?? data['fullName'],
-      role: _roleFromString(roleStr),
-      companyName: data['companyName'],
-      phoneNumber: data['phoneNumber'],
-      operatingRegion: data['operatingRegion'] ?? data['region'],
-      profileCompleted: profileCompleted,
-    );
-  }
-
-  @override
-  Future<AppUser?> register(String email, String password) async {
-    final UserCredential cred = await _auth.createUserWithEmailAndPassword(email: email, password: password);
-    final uid = cred.user?.uid;
-    if (uid == null) return null;
-    final user = AppUser(
-      id: uid,
-      email: email,
-      role: UserRole.none,
-      profileCompleted: false,
-    );
-    await _firestore.collection('users').doc(uid).set({
-      'uid': uid,
-      'email': email,
-      'role': null,
-      'profileCompleted': false,
-      'createdAt': FieldValue.serverTimestamp(),
-    });
-    return user;
   }
 
   @override
@@ -109,6 +75,30 @@ class FirebaseAuthRepository implements AuthRepository {
       operatingRegion: data['operatingRegion'] ?? data['region'],
       profileCompleted: data['profileCompleted'] as bool? ?? false,
     );
+  }
+
+  @override
+  Future<void> completeProfile({
+    required String name,
+    String? region,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) throw Exception('User not authenticated');
+
+    final data = <String, dynamic>{
+      'name': name.trim(),
+      'profileCompleted': true,
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+
+    if (region != null && region.trim().isNotEmpty) {
+      data['region'] = region.trim();
+    }
+
+    await _firestore
+        .collection('users')
+        .doc(user.uid)
+        .set(data, SetOptions(merge: true));
   }
 
   @override
@@ -150,11 +140,14 @@ class FirebaseAuthRepository implements AuthRepository {
             .collection('users')
             .doc(user.uid)
             .snapshots()
-            .where((doc) {
-              return doc.exists;
-            })
             .listen(
               (doc) {
+                if (!doc.exists) {
+                  // Explicitly emit null when the profile document is missing.
+                  // This distinguishes a missing profile from a loading state or network error.
+                  controller.add(null);
+                  return;
+                }
 
                 final data = doc.data() ?? {};
 
@@ -228,7 +221,7 @@ class FirebaseAuthRepository implements AuthRepository {
     if (user == null) return null;
     return AppUser(
       id: user.uid,
-      email: user.email ?? '',
+      email: user.email,
       role: UserRole.none,
       profileCompleted: false,
     );

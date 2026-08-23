@@ -54,7 +54,7 @@ extension UserRoleExtension on UserRole {
 
 class AppUser {
   final String id;
-  final String email;
+  final String? email;
   final String? name;
   final UserRole role;
   final String? phoneNumber;
@@ -72,7 +72,7 @@ class AppUser {
 
   const AppUser({
     required this.id,
-    required this.email,
+    this.email,
     this.name,
     required this.role,
     this.phoneNumber,

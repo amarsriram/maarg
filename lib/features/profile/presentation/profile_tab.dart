@@ -2,17 +2,19 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/safe_parse_utils.dart';
+import '../../auth/presentation/auth_controller.dart';
 
-class ProfileTab extends StatefulWidget {
+class ProfileTab extends ConsumerStatefulWidget {
   const ProfileTab({super.key});
 
   @override
-  State<ProfileTab> createState() => _ProfileTabState();
+  ConsumerState<ProfileTab> createState() => _ProfileTabState();
 }
 
-class _ProfileTabState extends State<ProfileTab> {
+class _ProfileTabState extends ConsumerState<ProfileTab> {
   bool _isLoggingOut = false;
 
   Future<void> _handleLogout() async {
@@ -23,32 +25,13 @@ class _ProfileTabState extends State<ProfileTab> {
     });
 
     try {
-      await FirebaseAuth.instance.signOut().timeout(const Duration(seconds: 8));
+      await ref.read(authControllerProvider.notifier).logout();
       
       if (!mounted) return;
-      
       
       // GoRouter listens to authStateProvider and will automatically
       // redirect to /login and handle widget unmounting cleanly.
       
-    } on TimeoutException {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Logout timed out due to no connection.')),
-        );
-        setState(() {
-          _isLoggingOut = false;
-        });
-      }
-    } on FirebaseException catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.code == 'unavailable' ? 'No internet connection' : 'Failed to log out: ${e.message}')),
-        );
-        setState(() {
-          _isLoggingOut = false;
-        });
-      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

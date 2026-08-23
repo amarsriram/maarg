@@ -48,13 +48,21 @@ class AnalyticsRepository {
 
   AnalyticsRepository(this._firestore);
 
-  /// Streams provider analytics by aggressively aggregating load data on the client.
-  /// NOTE: This is client-side aggregation suitable for MVP scale.
-  /// Phase 3 (Cloud Functions) should move this to a scheduled/triggered backend aggregation.
+  /// Streams provider analytics using targeted status snapshots and count aggregations
+  /// rather than downloading the entire historical load collection.
   Stream<ProviderAnalytics> streamProviderAnalytics(String providerUid) {
     return _firestore
         .collection('loads')
         .where('providerUid', isEqualTo: providerUid)
+        .where('status', whereIn: [
+          'assigned',
+          'en_route_pickup',
+          'loaded',
+          'in_transit',
+          'delivered',
+          'disputed',
+          'completed',
+        ])
         .snapshots()
         .map((snapshot) {
       int active = 0;
@@ -67,8 +75,7 @@ class AnalyticsRepository {
         final statusStr = data['status'] as String?;
         final status = TripStatusExtension.fromString(statusStr);
         final budgetStr = data['budget'] as String? ?? '0';
-        
-        // Simple budget parser (assuming strings like "₹12,000" or "12000")
+
         int budget = 0;
         try {
           final cleanStr = budgetStr.replaceAll(RegExp(r'[^0-9]'), '');
@@ -82,7 +89,6 @@ class AnalyticsRepository {
           spend += budget;
         } else if (status != TripStatus.open && status != TripStatus.cancelled && status != TripStatus.requested) {
           active++;
-          // For demo purposes, we will just simulate delayed if disputed
           if (status == TripStatus.disputed) {
             delayed++;
           }
@@ -98,7 +104,7 @@ class AnalyticsRepository {
     });
   }
 
-  /// Streams truck owner analytics (earnings, trips completed).
+  /// Streams truck owner analytics (earnings, trips completed) filtered by active/completed status.
   Stream<TruckOwnerAnalytics> streamTruckOwnerAnalytics(String truckOwnerUid) {
     return _firestore
         .collection('loads')
@@ -121,13 +127,32 @@ class AnalyticsRepository {
         } catch (_) {}
       }
 
-      // We'll hardcode rating for now until a rating system is built
       return TruckOwnerAnalytics(
         weeklyEarnings: earnings,
         rating: 0.0,
         completedTrips: completed,
       );
     });
+  }
+
+  /// Efficient server-side count query for total provider load count.
+  Future<int> getProviderLoadCount(String providerUid) async {
+    final snapshot = await _firestore
+        .collection('loads')
+        .where('providerUid', isEqualTo: providerUid)
+        .count()
+        .get();
+    return snapshot.count ?? 0;
+  }
+
+  /// Efficient server-side count query for available marketplace loads.
+  Future<int> getAvailableLoadsCount() async {
+    final snapshot = await _firestore
+        .collection('loads')
+        .where('status', isEqualTo: 'open')
+        .count()
+        .get();
+    return snapshot.count ?? 0;
   }
 }
 

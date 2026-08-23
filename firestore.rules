@@ -10,28 +10,181 @@ service cloud.firestore {
     }
 
     match /loads/{loadId} {
-      allow read, write:
+      allow read, create, delete:
         if request.auth != null;
+
+      allow update:
+        if request.auth != null
+        && (
+          // If not transitioning TO completed, or already completed, allow
+          request.resource.data.status != 'completed'
+          || resource.data.status == 'completed'
+          // If transitioning TO completed, enforce all security constraints
+          || (
+            request.resource.data.status == 'completed'
+            && resource.data.status == 'delivered'
+            && request.auth.uid == resource.data.assignedTruckOwnerUid
+            && exists(/databases/$(database)/documents/payments/$(loadId))
+            && get(/databases/$(database)/documents/payments/$(loadId)).data.status == 'confirmed'
+          )
+        );
     }
 
     match /bookings/{bookingId} {
-      allow read, write:
-        if request.auth != null;
+      // READ: Only participants (Provider or Truck Owner) can read bookings.
+      allow read: if request.auth != null && (
+        resource == null
+        || request.auth.uid == resource.data.providerUid
+        || request.auth.uid == resource.data.truckOwnerUid
+      );
+
+      // CREATE: Only the authenticated Truck Owner can create a booking for themselves.
+      allow create: if request.auth != null
+        && request.auth.uid == request.resource.data.truckOwnerUid;
+
+      // UPDATE: Only participants can update booking status; immutable relationship fields preserved.
+      allow update: if request.auth != null
+        && (request.auth.uid == resource.data.providerUid || request.auth.uid == resource.data.truckOwnerUid)
+        && request.resource.data.loadId == resource.data.loadId
+        && request.resource.data.providerUid == resource.data.providerUid
+        && request.resource.data.truckOwnerUid == resource.data.truckOwnerUid;
+
+      // DELETE: Restricted to participants.
+      allow delete: if request.auth != null
+        && (request.auth.uid == resource.data.providerUid || request.auth.uid == resource.data.truckOwnerUid);
     }
 
     match /trips/{tripId} {
-      allow read, write:
-        if request.auth != null;
+      // READ: Only participants can read trip status.
+      allow read: if request.auth != null && (
+        resource == null
+        || request.auth.uid == resource.data.providerUid
+        || request.auth.uid == resource.data.truckOwnerUid
+      );
+
+      // CREATE: Only the Provider can initiate the trip record atomically on acceptance.
+      allow create: if request.auth != null
+        && request.auth.uid == request.resource.data.providerUid;
+
+      // UPDATE: Only participants can update trip state.
+      allow update: if request.auth != null
+        && (request.auth.uid == resource.data.providerUid || request.auth.uid == resource.data.truckOwnerUid);
+
+      // DELETE: Disallowed to prevent state loss.
+      allow delete: if false;
     }
 
     match /notifications/{notificationId} {
+      // READ: Only the recipient can read notifications.
       allow read: if request.auth != null && request.auth.uid == resource.data.uid;
-      allow write: if request.auth != null;
+      
+      // CREATE: Authenticated users can issue transactional notifications.
+      allow create: if request.auth != null;
+
+      // UPDATE/DELETE: Only recipient can mark read or clear notifications.
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.uid;
     }
 
     match /tripEvents/{eventId} {
-      allow read, write:
-        if request.auth != null;
+      // READ: Authenticated users can read audit logs.
+      allow read: if request.auth != null;
+
+      // CREATE: Enforce actorUid matches authenticated user (no forging).
+      allow create: if request.auth != null
+        && request.resource.data.actorUid == request.auth.uid;
+
+      // APPEND-ONLY: Audit logs can NEVER be edited or deleted by clients.
+      allow update, delete: if false;
+    }
+
+    match /contact_exchanges/{bookingId} {
+
+      // READ
+      allow read: if request.auth != null && (
+        resource == null
+        ||
+        request.auth.uid == resource.data.truckOwnerUid
+        ||
+        (
+          request.auth.uid == resource.data.providerUid
+          && resource.data.status == 'accepted'
+          && get(/databases/$(database)/documents/bookings/$(bookingId)).data.status == 'accepted'
+        )
+      );
+
+      // CREATE (Truck Owner Escrow)
+      allow create: if request.auth != null
+        && request.auth.uid == request.resource.data.truckOwnerUid
+        && request.resource.data.truckOwnerPhone == request.auth.token.phone_number
+        && request.resource.data.bookingId == bookingId
+        && request.resource.data.status == 'pending'
+        && !('providerPhone' in request.resource.data)
+        && getAfter(/databases/$(database)/documents/bookings/$(bookingId)).data.truckOwnerUid == request.auth.uid
+        && getAfter(/databases/$(database)/documents/bookings/$(bookingId)).data.providerUid == request.resource.data.providerUid
+        && getAfter(/databases/$(database)/documents/bookings/$(bookingId)).data.loadId == request.resource.data.loadId;
+
+      // UPDATE
+      allow update: if request.auth != null && (
+
+        (
+          request.auth.uid == resource.data.providerUid
+          && resource.data.status == 'pending'
+          && request.resource.data.status == 'accepted'
+          && request.resource.data.providerPhone == request.auth.token.phone_number
+          && getAfter(/databases/$(database)/documents/bookings/$(bookingId)).data.status == 'accepted'
+          && request.resource.data.truckOwnerUid == resource.data.truckOwnerUid
+          && request.resource.data.truckOwnerPhone == resource.data.truckOwnerPhone
+          && request.resource.data.bookingId == resource.data.bookingId
+          && request.resource.data.loadId == resource.data.loadId
+          && request.resource.data.providerUid == resource.data.providerUid
+        )
+
+        ||
+
+        (
+          request.auth.uid == resource.data.truckOwnerUid
+          && resource.data.status == 'pending'
+          && request.resource.data.status == 'withdrawn'
+          && request.resource.data.truckOwnerUid == resource.data.truckOwnerUid
+          && request.resource.data.truckOwnerPhone == resource.data.truckOwnerPhone
+          && request.resource.data.providerUid == resource.data.providerUid
+          && request.resource.data.bookingId == resource.data.bookingId
+          && request.resource.data.loadId == resource.data.loadId
+          && !('providerPhone' in request.resource.data)
+        )
+      );
+
+      // DELETE: only allowed when the authoritative booking is also being deleted.
+      allow delete: if request.auth != null
+        && !exists(getAfter(/databases/$(database)/documents/bookings/$(bookingId)));
+    }
+
+    match /payments/{loadId} {
+      function getLoad() {
+        return get(/databases/$(database)/documents/loads/$(loadId)).data;
+      }
+
+      allow read: if request.auth != null && (
+        resource == null ||
+        request.auth.uid == resource.data.providerUid ||
+        request.auth.uid == resource.data.truckOwnerUid
+      );
+
+      allow create: if request.auth != null
+        && request.auth.uid == getLoad().providerUid
+        && request.resource.data.providerUid   == getLoad().providerUid
+        && request.resource.data.truckOwnerUid == getLoad().assignedTruckOwnerUid
+        && getLoad().status in ['delivered', 'completed']
+        && request.resource.data.amount        == getLoad().budget
+        && request.resource.data.status        == 'marked_paid';
+
+      allow update: if request.auth != null
+        && request.auth.uid == resource.data.truckOwnerUid
+        && resource.data.status == 'marked_paid'
+        && request.resource.data.status in ['confirmed', 'disputed']
+        && request.resource.data.amount        == resource.data.amount
+        && request.resource.data.providerUid   == resource.data.providerUid
+        && request.resource.data.truckOwnerUid == resource.data.truckOwnerUid;
     }
   }
 }

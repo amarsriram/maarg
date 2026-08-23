@@ -61,9 +61,9 @@ class MaargLoadCard extends StatelessWidget {
     );
   }
 
-  String get _pickupCity => load.pickupLocation;
+  String get _pickupCity => _pickupParsed.city;
   String get _pickupState => _pickupParsed.state;
-  String get _dropCity => load.dropLocation;
+  String get _dropCity => _dropParsed.city;
   String get _dropState => _dropParsed.state;
 
   String get _stateCodeSummary {

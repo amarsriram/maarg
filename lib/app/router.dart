@@ -76,9 +76,12 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       final user = authState.value;
 
-      // ── STEP 3: User doc missing ──
+      // ── STEP 3: Profile document missing (ensureInitialProfile ran but stream emitted null) ──
+      // This is a fallback path. Normally ensureInitialProfile() has already written
+      // the doc before the router evaluates. If the doc is still missing here,
+      // route to role-selection so the user is never stuck on splash.
       if (user == null) {
-        return currentUri == '/splash' ? null : '/splash';
+        return currentUri == '/role-selection' ? null : '/role-selection';
       }
 
 

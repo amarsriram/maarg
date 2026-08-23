@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../auth/data/auth_repository.dart';
+import '../../../auth/presentation/auth_controller.dart';
 import '../../../auth/domain/user_model.dart';
 import '../../../../core/repositories/metrics_repository.dart';
 import '../../../../core/repositories/load_repository.dart';
@@ -63,7 +64,7 @@ class _TruckOwnerProfileTabState extends ConsumerState<TruckOwnerProfileTab> {
     if (confirm != true || !mounted) return;
     setState(() => _isLoggingOut = true);
     try {
-      await ref.read(authRepositoryProvider).logout();
+      await ref.read(authControllerProvider.notifier).logout();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -280,7 +281,7 @@ class _ProfileIdentityHero extends StatelessWidget {
         ? user.name!.trim()
         : 'Maarg Operator';
     final initial = displayName.isNotEmpty ? displayName[0].toUpperCase() : 'M';
-    final hasEmail = user.email.trim().isNotEmpty;
+    final hasEmail = user.email?.trim().isNotEmpty ?? false;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -326,13 +327,14 @@ class _ProfileIdentityHero extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
               if (hasEmail) ...[
-                const SizedBox(height: 2),
+                const SizedBox(height: 4),
                 Text(
-                  user.email,
-                  style: TextStyle(
+                  user.email!,
+                  style: const TextStyle(
                     fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: labelCol, // Muted blue-grey
+                    color: AppColors.lightTextTertiary,
+                    fontWeight: FontWeight.w400,
+                    letterSpacing: 0.1,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
@@ -34,27 +32,13 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     setState(() => _isSaving = true);
 
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) throw Exception('User not authenticated');
+      final name = _nameController.text.trim();
+      final region = role == UserRole.provider ? _regionController.text.trim() : null;
 
-      final data = <String, dynamic>{
-        'profileCompleted': true,
-        'updatedAt': FieldValue.serverTimestamp(),
-      };
-
-      if (role == UserRole.provider) {
-        // Provider saves: name (provider name), region, profileCompleted
-        data['name'] = _nameController.text.trim();
-        data['region'] = _regionController.text.trim();
-      } else {
-        // Truck Owner saves: name (driver name), profileCompleted
-        data['name'] = _nameController.text.trim();
-      }
-
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .set(data, SetOptions(merge: true));
+      await ref.read(authRepositoryProvider).completeProfile(
+        name: name,
+        region: region,
+      );
 
       // GoRouter redirect will automatically trigger once the Firestore
       // snapshot emits profileCompleted = true. No manual navigation needed.

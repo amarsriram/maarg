@@ -879,6 +879,8 @@ class _PostLoadTabState extends ConsumerState<PostLoadTab> {
                     MaargRouteWorkspace(
                       pickupController: _pickupController,
                       dropController: _dropController,
+                      pickupDetails: _pickupLocation,
+                      dropDetails: _dropLocation,
                       pickupHint: 'Select pickup city',
                       dropHint: 'Select delivery city',
                       isDark: isDark,
@@ -1015,6 +1017,8 @@ class _PostLoadTabState extends ConsumerState<PostLoadTab> {
                 MaargCompactRouteSummary(
                   pickup: _pickupController.text,
                   drop: _dropController.text,
+                  pickupDetails: _pickupLocation,
+                  dropDetails: _dropLocation,
                   pickupDate: _formatDateDisplay(_pickupDateController.text),
                   deliveryDate: _formatDateDisplay(_deliveryDateController.text),
                   isDark: isDark,
@@ -1112,6 +1116,8 @@ class _PostLoadTabState extends ConsumerState<PostLoadTab> {
           child: MaargReviewWorkspace(
             pickup: _pickupController.text,
             drop: _dropController.text,
+            pickupDetails: _pickupLocation,
+            dropDetails: _dropLocation,
             pickupDate: _formatDateDisplay(_pickupDateController.text),
             deliveryDate: _formatDateDisplay(_deliveryDateController.text),
             cargo: _materialController.text,
@@ -1400,10 +1406,11 @@ class _SectionLabel extends StatelessWidget {
 
 // ── Compact Journey Banner ──────────────────────────────────────────────────
 
-
 class MaargCompactRouteSummary extends StatelessWidget {
   final String pickup;
   final String drop;
+  final LocationModel? pickupDetails;
+  final LocationModel? dropDetails;
   final String pickupDate;
   final String deliveryDate;
   final bool isDark;
@@ -1413,13 +1420,16 @@ class MaargCompactRouteSummary extends StatelessWidget {
     super.key,
     required this.pickup,
     required this.drop,
+    this.pickupDetails,
+    this.dropDetails,
     required this.pickupDate,
     required this.deliveryDate,
     required this.isDark,
     required this.onTap,
   });
 
-  String _formatLocation(String raw) {
+  String _formatLocation(String raw, LocationModel? details) {
+    if (details != null && details.city.isNotEmpty) return details.city;
     if (raw.isEmpty) return 'Not set';
     return raw.split(',').first.trim();
   }
@@ -1537,7 +1547,7 @@ class MaargCompactRouteSummary extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    _formatLocation(pickup),
+                                    _formatLocation(pickup, pickupDetails),
                                     style: TextStyle(
                                       fontSize: 15,
                                       fontWeight: FontWeight.w700,
@@ -1587,7 +1597,7 @@ class MaargCompactRouteSummary extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    _formatLocation(drop),
+                                    _formatLocation(drop, dropDetails),
                                     style: TextStyle(
                                       fontSize: 15,
                                       fontWeight: FontWeight.w700,
@@ -1848,7 +1858,9 @@ class _DateCard extends StatelessWidget {
 // ── Maarg Route Workspace (Canonical Signature Component) ─────────────────────
 
 /// Formats a raw location string to display city name only.
-String _formatLocation(String raw) {
+String _formatLocation(String raw, [LocationModel? details]) {
+  if (details != null && details.city.isNotEmpty) return details.city;
+  if (raw.isEmpty) return 'Not set';
   return raw.split(',').first.trim();
 }
 
@@ -1890,6 +1902,8 @@ class _RouteConnectorPainter extends CustomPainter {
 class MaargRouteWorkspace extends StatelessWidget {
   final TextEditingController pickupController;
   final TextEditingController dropController;
+  final LocationModel? pickupDetails;
+  final LocationModel? dropDetails;
   final String pickupHint;
   final String dropHint;
   final bool isDark;
@@ -1900,6 +1914,8 @@ class MaargRouteWorkspace extends StatelessWidget {
     super.key,
     required this.pickupController,
     required this.dropController,
+    this.pickupDetails,
+    this.dropDetails,
     required this.pickupHint,
     required this.dropHint,
     required this.isDark,
@@ -1984,7 +2000,7 @@ class MaargRouteWorkspace extends StatelessWidget {
                 children: [
                   Semantics(
                     label: hasPickup
-                        ? 'Pickup location: ${_formatLocation(pickupController.text)}. Tap to change.'
+                        ? 'Pickup location: ${_formatLocation(pickupController.text, pickupDetails)}. Tap to change.'
                         : 'Pickup location: not set. Tap to select.',
                     button: true,
                     child: ConstrainedBox(
@@ -2016,7 +2032,7 @@ class MaargRouteWorkspace extends StatelessWidget {
                                     const SizedBox(height: 4),
                                     Text(
                                       hasPickup
-                                          ? _formatLocation(pickupController.text)
+                                          ? _formatLocation(pickupController.text, pickupDetails)
                                           : pickupHint,
                                       style: TextStyle(
                                         fontSize: 15,
@@ -2040,7 +2056,7 @@ class MaargRouteWorkspace extends StatelessWidget {
                   Divider(height: 1, thickness: 1, color: borderColor),
                   Semantics(
                     label: hasDrop
-                        ? 'Delivery location: ${_formatLocation(dropController.text)}. Tap to change.'
+                        ? 'Delivery location: ${_formatLocation(dropController.text, dropDetails)}. Tap to change.'
                         : 'Delivery location: not set. Tap to select.',
                     button: true,
                     child: ConstrainedBox(
@@ -2072,7 +2088,7 @@ class MaargRouteWorkspace extends StatelessWidget {
                                     const SizedBox(height: 4),
                                     Text(
                                       hasDrop
-                                          ? _formatLocation(dropController.text)
+                                          ? _formatLocation(dropController.text, dropDetails)
                                           : dropHint,
                                       style: TextStyle(
                                         fontSize: 15,
@@ -2112,6 +2128,8 @@ class MaargReviewWorkspace extends StatelessWidget {
   // Route section
   final String pickup;
   final String drop;
+  final LocationModel? pickupDetails;
+  final LocationModel? dropDetails;
   final String pickupDate;
   final String deliveryDate;
 
@@ -2129,6 +2147,8 @@ class MaargReviewWorkspace extends StatelessWidget {
     super.key,
     required this.pickup,
     required this.drop,
+    this.pickupDetails,
+    this.dropDetails,
     required this.pickupDate,
     required this.deliveryDate,
     required this.cargo,

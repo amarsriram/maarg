@@ -11,7 +11,10 @@ import '../../../../core/repositories/booking_repository.dart';
 import '../../../../core/services/trip_operations_service.dart';
 import '../../../../core/utils/load_formatters.dart';
 import '../../../auth/data/auth_repository.dart';
+import '../../../../core/widgets/contact_exchange_success_dialog.dart';
 import '../../../dashboard/presentation/load_detail_screen.dart';
+import '../../../../core/repositories/payment_repository.dart';
+import '../../../../core/widgets/payment_status_card.dart';
 
 import 'post_load_tab.dart'; // To access repostLoadProvider
 import 'package:flutter/foundation.dart';
@@ -193,24 +196,6 @@ class _ShipmentCard extends ConsumerWidget {
     return load.tripStatus.displayName.toUpperCase();
   }
 
-  Future<void> _updateStatus(WidgetRef ref, BuildContext context, TripStatus newStatus) async {
-    final user = ref.read(authStateProvider).value;
-    if (user == null) return;
-    try {
-      await ref.read(tripOperationsServiceProvider).advanceLoadStatus(load, newStatus, user);
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Status updated to ${newStatus.displayName}'), backgroundColor: AppColors.success),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error updating status: $e'), backgroundColor: AppColors.error),
-        );
-      }
-    }
-  }
 
   Future<void> _deleteLoad(WidgetRef ref, BuildContext context) async {
     final user = ref.read(authStateProvider).value;
@@ -279,28 +264,59 @@ class _ShipmentCard extends ConsumerWidget {
 
   Widget _buildActionButtons(WidgetRef ref, BuildContext context) {
     if (load.tripStatus == TripStatus.open) return const SizedBox.shrink(); // handled by bookings stream
-    
-    // Provider can ONLY complete a trip after the Truck Owner marks it delivered.
-    // All field-level operations (dispatch, loaded, in_transit, delivered) are truck-owner-driven.
-    if (load.tripStatus == TripStatus.delivered) {
-      return Padding(
-        padding: const EdgeInsets.only(top: 12),
-        child: SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: () => _updateStatus(ref, context, TripStatus.completed),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.success,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-            child: const Text('Complete Trip'),
+
+    // Provider no longer owns the completion transition.
+    // For delivered: show PaymentStatusCard only (no repost — trip not finished).
+    // For completed: show PaymentStatusCard + "Repost Similar Load" beneath it.
+    if (load.tripStatus == TripStatus.delivered || load.tripStatus == TripStatus.completed) {
+      final user = ref.read(authStateProvider).value;
+      if (user != null) {
+        final isCompleted = load.status == 'completed';
+        return Padding(
+          padding: const EdgeInsets.only(top: 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ref.watch(paymentStreamProvider(load.loadId)).when(
+                data: (payment) => PaymentStatusCard(
+                  payment: payment,
+                  load: load,
+                  currentUser: user,
+                  isDark: isDark,
+                ),
+                loading: () => const SizedBox.shrink(),
+                error: (e, _) => Text('Error loading payment state.',
+                    style: TextStyle(color: AppColors.error, fontSize: 12)),
+              ),
+              // "Repost Similar Load" is only available once the trip is fully completed.
+              if (isCompleted) ...[
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      ref.read(repostLoadProvider.notifier).state = load;
+                      onTabChange?.call(1);
+                    },
+                    icon: const Icon(Icons.copy_rounded, size: 18),
+                    label: const Text('Repost Similar Load'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.primaryBlue,
+                      side: const BorderSide(color: AppColors.primaryBlue),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                ),
+              ],
+            ],
           ),
-        ),
-      );
+        );
+      }
     }
-    
-    if (load.isExpired || load.status == 'completed') {
+
+    // Expired open loads: Edit & Repost
+    if (load.isExpired) {
       return Padding(
         padding: const EdgeInsets.only(top: 12),
         child: SizedBox(
@@ -310,8 +326,8 @@ class _ShipmentCard extends ConsumerWidget {
               ref.read(repostLoadProvider.notifier).state = load;
               onTabChange?.call(1);
             },
-            icon: Icon(load.status == 'completed' ? Icons.copy_rounded : Icons.edit_document, size: 18),
-            label: Text(load.status == 'completed' ? 'Repost Similar Load' : 'Edit & Repost'),
+            icon: const Icon(Icons.edit_document, size: 18),
+            label: const Text('Edit & Repost'),
             style: OutlinedButton.styleFrom(
               foregroundColor: AppColors.primaryBlue,
               side: const BorderSide(color: AppColors.primaryBlue),
@@ -321,7 +337,7 @@ class _ShipmentCard extends ConsumerWidget {
         ),
       );
     }
-    
+
     return const SizedBox.shrink();
   }
 
@@ -331,6 +347,15 @@ class _ShipmentCard extends ConsumerWidget {
 
     return GestureDetector(
       onTap: () {
+        // Switch to the correct sub-tab before navigating so the tab context
+        // always reflects the tapped load's actual status, not stale selection state.
+        final targetTab = switch (load.status) {
+          'completed' => 2,
+          'open' => load.isExpired ? 3 : 0,
+          _ => 1, // active (booked, assigned, en_route_pickup, loaded, in_transit, delivered)
+        };
+        ref.read(shipmentsSubTabProvider.notifier).state = targetTab;
+
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -559,8 +584,26 @@ class _BookingRequestCardState extends ConsumerState<_BookingRequestCard> {
     try {
       await ref.read(tripOperationsServiceProvider).acceptBooking(widget.booking, user).timeout(const Duration(seconds: 8));
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Load assigned successfully'), backgroundColor: AppColors.success),
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => ContactExchangeSuccessDialog(
+            bookingId: '${widget.load.loadId}_${widget.booking.truckOwnerUid}',
+            currentUserUid: user.id,
+            onViewAction: () {
+              Navigator.pop(ctx);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => LoadDetailScreen(
+                    loadId: widget.load.loadId,
+                    initialLoad: widget.load,
+                  ),
+                ),
+              );
+            },
+            viewActionLabel: 'View Load',
+          ),
         );
       }
     } on TimeoutException {

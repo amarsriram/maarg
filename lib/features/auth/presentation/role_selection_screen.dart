@@ -8,6 +8,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'auth_controller.dart';
 import 'package:flutter/foundation.dart';
 
+
 class RoleSelectionScreen extends ConsumerStatefulWidget {
   const RoleSelectionScreen({super.key});
 
@@ -17,12 +18,14 @@ class RoleSelectionScreen extends ConsumerStatefulWidget {
 
 class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
   UserRole _selectedRole = UserRole.none;
+  bool _isSaving = false;
 
   Future<void> _handleContinue() async {
-    if (_selectedRole == UserRole.none) return;
+    if (_selectedRole == UserRole.none || _isSaving) return;
+
+    setState(() => _isSaving = true);
 
     try {
-
       final uid = FirebaseAuth.instance.currentUser?.uid;
 
       if (uid == null) {
@@ -31,21 +34,9 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
 
       final success = await ref.read(authControllerProvider.notifier).selectRole(_selectedRole);
       
-      if (success && mounted) {
-      } else if (mounted) {
-        final errorState = ref.read(authControllerProvider).error;
-        String errorMessage = 'Failed to save role. Please try again.';
-        if (errorState is TimeoutException) {
-          errorMessage = 'Connection timed out. Please check your internet.';
-        } else if (errorState is FirebaseException) {
-          if (errorState.code == 'unavailable' || errorState.code == 'network-request-failed') {
-            errorMessage = 'No internet connection. Please reconnect and try again.';
-          } else {
-            errorMessage = errorState.message ?? errorMessage;
-          }
-        }
+      if (!success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(errorMessage), backgroundColor: AppColors.error),
+          const SnackBar(content: Text('Failed to save role. Please try again.'), backgroundColor: AppColors.error),
         );
       }
     } catch (e, st) {
@@ -58,6 +49,10 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
           SnackBar(content: Text('Error: ${e.toString().replaceAll('Exception: ', '')}'), backgroundColor: AppColors.error),
         );
       }
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
     }
   }
 
@@ -65,7 +60,6 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final isLoading = ref.watch(authControllerProvider).isLoading;
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF031B4E) : Colors.white,
@@ -158,8 +152,8 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
               // Continue
               CustomButton(
                 text: 'Continue',
-                onPressed: _selectedRole != UserRole.none ? _handleContinue : null,
-                isLoading: isLoading,
+                onPressed: (_selectedRole != UserRole.none && !_isSaving) ? _handleContinue : null,
+                isLoading: _isSaving,
               ),
               const SizedBox(height: 16),
             ],

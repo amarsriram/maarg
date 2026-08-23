@@ -8,6 +8,7 @@ import '../../../../core/widgets/profile/profile_info_card.dart';
 import '../../../../core/widgets/profile/profile_stats_card.dart';
 import '../../../../core/widgets/profile/settings_tile.dart';
 import '../../../auth/data/auth_repository.dart';
+import '../../../auth/presentation/auth_controller.dart';
 import '../../../auth/domain/user_model.dart';
 import '../../../../core/repositories/metrics_repository.dart';
 import '../../../../app/app.dart';
@@ -58,7 +59,7 @@ class _LoadProviderProfileTabState extends ConsumerState<LoadProviderProfileTab>
     setState(() => _isLoggingOut = true);
 
     try {
-      await ref.read(authRepositoryProvider).logout();
+      await ref.read(authControllerProvider.notifier).logout();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -117,7 +118,7 @@ class _LoadProviderProfileTabState extends ConsumerState<LoadProviderProfileTab>
               // Profile Info Card
               ProfileInfoCard(
                 name: user.providerDisplayName,
-                email: user.email,
+                email: user.email ?? user.phoneNumber ?? 'No contact info',
                 roleBadge: user.role.displayName,
                 memberSince: memberSince,
                 isDark: isDark,

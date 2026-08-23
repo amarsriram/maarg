@@ -19,6 +19,7 @@ import '../../../auth/data/auth_repository.dart';
 import '../../../notifications/presentation/notification_feed_screen.dart';
 import '../../../notifications/presentation/widgets/notification_badge.dart';
 import '../../../dashboard/presentation/load_detail_screen.dart';
+import '../../../../core/widgets/contact_exchange_success_dialog.dart';
 
 class TruckOwnerHomeTab extends ConsumerStatefulWidget {
   const TruckOwnerHomeTab({super.key, this.onTabChange});
@@ -43,6 +44,34 @@ class _TruckOwnerHomeTabState extends ConsumerState<TruckOwnerHomeTab> {
     final isDark = theme.brightness == Brightness.dark;
     final authState = ref.watch(authStateProvider);
     final user = authState.value;
+
+    if (user != null) {
+      ref.listen<AsyncValue<BookingModel?>>(
+        truckOwnerActiveBookingProvider(user.id),
+        (previous, next) {
+          final prevBooking = previous?.value;
+          final nextBooking = next.value;
+          
+          if (prevBooking != null && prevBooking.status == 'pending' && nextBooking != null && nextBooking.status == 'accepted') {
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (ctx) => ContactExchangeSuccessDialog(
+                bookingId: '${nextBooking.loadId}_${user.id}',
+                currentUserUid: user.id,
+                title: 'Booking Accepted',
+                subtitle: 'Your contact has been exchanged\nwith the Provider.',
+                onViewAction: () {
+                  Navigator.pop(ctx);
+                  widget.onTabChange?.call(1); // Navigate to Trips Tab
+                },
+                viewActionLabel: 'View Trip',
+              ),
+            );
+          }
+        },
+      );
+    }
 
     final availableLoadsStream = ref.watch(availableLoadsProvider);
     final activeTripsStream = user != null ? ref.watch(truckOwnerTripsProvider(user.id)) : const AsyncValue<List<LoadModel>>.data([]);
@@ -1048,297 +1077,304 @@ class _ActiveTripWorkspaceState extends ConsumerState<_ActiveTripWorkspace> {
     final action = _nextAction;
     final contextSentence = _nextMoveContext;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
+    return GestureDetector(
+      // Tapping non-button area of this card navigates to the Trips tab (index 2).
+      // Button widgets (TextButton, ElevatedButton) absorb their own pointer events
+      // in Flutter and do NOT bubble to this GestureDetector.
+      behavior: HitTestBehavior.translucent,
+      onTap: () => widget.onTabChange?.call(2),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
 
-        // ── ● ACTIVE TRIP — operational signal ─────────────────────────────
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 8,
-              height: 8,
-              decoration: const BoxDecoration(
-                color: AppColors.primaryBlue,
-                shape: BoxShape.circle,
-              ),
-            ),
-            const SizedBox(width: 8),
-            const Text(
-              'ACTIVE TRIP',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: AppColors.primaryBlue,
-                letterSpacing: 0.6,
-              ),
-            ),
-          ],
-        ),
-
-        const SizedBox(height: 12), // small intentional gap
-
-        // ── ROUTE ──────────────────────────────────────────────────────────
-        IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+          // ── ● ACTIVE TRIP — operational signal ─────────────────────────────
+          Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              // Vertical motif column
-              SizedBox(
-                width: 20,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const SizedBox(height: 6), // align with top of origin city
-                    Container(
-                      width: 10,
-                      height: 10,
-                      decoration: const BoxDecoration(
-                        color: AppColors.primaryBlue,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    Expanded(
-                      child: Center(
-                        child: Container(
-                          width: 1.5, // restrained connector line
-                          color: widget.isDark ? Colors.white12 : Colors.black12,
-                        ),
-                      ),
-                    ),
-                    Container(
-                      width: 10,
-                      height: 10,
-                      decoration: const BoxDecoration(
-                        color: AppColors.primaryBlue,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    // Push bottom node up to align with dest city, leaving state text below it
-                    SizedBox(height: destState.isNotEmpty ? 18 : 6),
-                  ],
+              Container(
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
+                  color: AppColors.primaryBlue,
+                  shape: BoxShape.circle,
                 ),
               ),
-
-              const SizedBox(width: 12),
-
-              // Location labels
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Origin
-                    Text(
-                      originCity,
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                        color: primaryText,
-                        height: 1.1,
-                        letterSpacing: -0.3,
-                      ),
-                    ),
-                    if (originState.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 3),
-                        child: Text(
-                          originState,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: tertiaryText,
-                            letterSpacing: 0.2,
-                          ),
-                        ),
-                      ),
-
-                    const SizedBox(height: 20),
-
-                    // Destination
-                    Text(
-                      destCity,
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                        color: primaryText,
-                        height: 1.1,
-                        letterSpacing: -0.3,
-                      ),
-                    ),
-                    if (destState.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 3),
-                        child: Text(
-                          destState,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: tertiaryText,
-                            letterSpacing: 0.2,
-                          ),
-                        ),
-                      ),
-                  ],
+              const SizedBox(width: 8),
+              const Text(
+                'ACTIVE TRIP',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.primaryBlue,
+                  letterSpacing: 0.6,
                 ),
               ),
             ],
           ),
-        ),
 
-        // ── Status chip + pickup date (inline, subordinate) ────────────────
-        const SizedBox(height: 20), // moderate gap
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-              decoration: BoxDecoration(
-                color: _statusColor.withValues(alpha: 0.10),
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: _statusColor.withValues(alpha: 0.20)),
-              ),
-              child: Text(
-                _statusLabel,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  color: _statusColor,
-                  letterSpacing: 0.5,
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                LoadFormatters.formatPickupDate(widget.trip.pickupDate),
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: tertiaryText,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
+          const SizedBox(height: 12), // small intentional gap
 
-        // ── NEXT MOVE ──────────────────────────────────────────────────────
-        if (action != null) ...[
-          const SizedBox(height: 20), // moderate gap
-
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
-            decoration: BoxDecoration(
-              color: surfaceColor,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: borderColor),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          // ── ROUTE ──────────────────────────────────────────────────────────
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // NEXT MOVE label
-                Text(
-                  'NEXT MOVE',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    color: tertiaryText,
-                    letterSpacing: 0.7,
-                  ),
-                ),
-
-                const SizedBox(height: 8),
-
-                // Action name — prominent
-                Text(
-                  action.$2.toUpperCase(),
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    color: primaryText,
-                    letterSpacing: 0.2,
-                    height: 1.15,
-                  ),
-                ),
-
-                // Contextual sentence — if available
-                if (contextSentence != null) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    contextSentence,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w400,
-                      color: tertiaryText,
-                      height: 1.45,
-                    ),
-                  ),
-                ],
-
-                const SizedBox(height: 16),
-
-                // Primary CTA
+                // Vertical motif column
                 SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: TextButton(
-                    onPressed: _isUpdating ? null : () => _advanceStatus(action.$1),
-                    style: TextButton.styleFrom(
-                      backgroundColor: AppColors.primaryBlue,
-                      foregroundColor: Colors.white,
-                      disabledBackgroundColor: AppColors.primaryBlue.withValues(alpha: 0.5),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                  width: 20,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const SizedBox(height: 6), // align with top of origin city
+                      Container(
+                        width: 10,
+                        height: 10,
+                        decoration: const BoxDecoration(
+                          color: AppColors.primaryBlue,
+                          shape: BoxShape.circle,
+                        ),
                       ),
-                    ),
-                    child: _isUpdating
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            ),
-                          )
-                        : Text(
-                            action.$2,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.4,
+                      Expanded(
+                        child: Center(
+                          child: Container(
+                            width: 1.5, // restrained connector line
+                            color: widget.isDark ? Colors.white12 : Colors.black12,
+                          ),
+                        ),
+                      ),
+                      Container(
+                        width: 10,
+                        height: 10,
+                        decoration: const BoxDecoration(
+                          color: AppColors.primaryBlue,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      // Push bottom node up to align with dest city, leaving state text below it
+                      SizedBox(height: destState.isNotEmpty ? 18 : 6),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(width: 12),
+
+                // Location labels
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Origin
+                      Text(
+                        originCity,
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: primaryText,
+                          height: 1.1,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                      if (originState.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 3),
+                          child: Text(
+                            originState,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: tertiaryText,
+                              letterSpacing: 0.2,
                             ),
                           ),
+                        ),
+
+                      const SizedBox(height: 20),
+
+                      // Destination
+                      Text(
+                        destCity,
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: primaryText,
+                          height: 1.1,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                      if (destState.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 3),
+                          child: Text(
+                            destState,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: tertiaryText,
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
               ],
             ),
           ),
-        ],
 
-        // ── VIEW TRIP — secondary action ───────────────────────────────────
-        const SizedBox(height: 12), // small/moderate gap
-        Center(
-          child: TextButton(
-            onPressed: () => widget.onTabChange?.call(2),
-            style: TextButton.styleFrom(
-              foregroundColor: widget.isDark ? Colors.white54 : Colors.black45,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          // ── Status chip + pickup date (inline, subordinate) ────────────────
+          const SizedBox(height: 20), // moderate gap
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _statusColor.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: _statusColor.withValues(alpha: 0.20)),
+                ),
+                child: Text(
+                  _statusLabel,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: _statusColor,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  LoadFormatters.formatPickupDate(widget.trip.pickupDate),
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: tertiaryText,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+
+          // ── NEXT MOVE ──────────────────────────────────────────────────────
+          if (action != null) ...[
+            const SizedBox(height: 20), // moderate gap
+
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
+              decoration: BoxDecoration(
+                color: surfaceColor,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: borderColor),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // NEXT MOVE label
+                  Text(
+                    'NEXT MOVE',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: tertiaryText,
+                      letterSpacing: 0.7,
+                    ),
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  // Action name — prominent
+                  Text(
+                    action.$2.toUpperCase(),
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: primaryText,
+                      letterSpacing: 0.2,
+                      height: 1.15,
+                    ),
+                  ),
+
+                  // Contextual sentence — if available
+                  if (contextSentence != null) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      contextSentence,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w400,
+                        color: tertiaryText,
+                        height: 1.45,
+                      ),
+                    ),
+                  ],
+
+                  const SizedBox(height: 16),
+
+                  // Primary CTA — absorbs its own tap; does NOT bubble to the GestureDetector
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: TextButton(
+                      onPressed: _isUpdating ? null : () => _advanceStatus(action.$1),
+                      style: TextButton.styleFrom(
+                        backgroundColor: AppColors.primaryBlue,
+                        foregroundColor: Colors.white,
+                        disabledBackgroundColor: AppColors.primaryBlue.withValues(alpha: 0.5),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: _isUpdating
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : Text(
+                              action.$2,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.4,
+                              ),
+                            ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-            child: const Text(
-              'VIEW TRIP →',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.5,
+          ],
+
+          // ── VIEW TRIP — secondary action (also absorbs its own tap) ────────
+          const SizedBox(height: 12), // small/moderate gap
+          Center(
+            child: TextButton(
+              onPressed: () => widget.onTabChange?.call(2),
+              style: TextButton.styleFrom(
+                foregroundColor: widget.isDark ? Colors.white54 : Colors.black45,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: const Text(
+                'VIEW TRIP →',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.5,
+                ),
               ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

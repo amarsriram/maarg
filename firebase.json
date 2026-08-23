@@ -4,7 +4,7 @@
       "android": {
         "default": {
           "projectId": "maarg-527b0",
-          "appId": "1:483720676557:android:c59b2f8477c86e232ad584",
+          "appId": "1:483720676557:android:e4bcee99572421302ad584",
           "fileOutput": "android/app/google-services.json"
         }
       },
@@ -21,5 +21,23 @@
   "firestore": {
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
+  },
+  "functions": {
+    "source": "functions"
+  },
+  "emulators": {
+    "auth": {
+      "port": 9099
+    },
+    "functions": {
+      "port": 5001
+    },
+    "firestore": {
+      "port": 8080
+    },
+    "ui": {
+      "enabled": true
+    },
+    "singleProjectMode": true
   }
 }

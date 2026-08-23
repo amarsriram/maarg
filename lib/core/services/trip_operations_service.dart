@@ -1,12 +1,16 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/load_model.dart';
 import '../models/booking_model.dart';
+import '../models/contact_exchange_model.dart';
 import '../models/trip_event_model.dart';
 import '../models/notification_model.dart';
 import '../models/trip_status.dart';
 import '../../features/auth/domain/user_model.dart';
+import 'analytics_service.dart';
+import 'observability_service.dart';
 
 final tripOperationsServiceProvider = Provider<TripOperationsService>((ref) {
   return TripOperationsService(FirebaseFirestore.instance);
@@ -20,6 +24,18 @@ class TripOperationsService {
   /// Accepts a booking using a Firestore TRANSACTION (atomic all-or-nothing).
   Future<void> acceptBooking(BookingModel booking, AppUser currentUser) async {
     
+    // Obtain the verified phone number exclusively from Firebase Auth.
+    // Never accept providerPhone as an argument — the JWT is the only trusted source.
+    final firebaseUser = FirebaseAuth.instance.currentUser;
+    final providerPhone = firebaseUser?.phoneNumber;
+
+    if (providerPhone == null || providerPhone.isEmpty) {
+      throw Exception(
+        'No verified phone number found. '
+        'Please ensure Phone Authentication is complete before accepting a booking.',
+      );
+    }
+
     try {
       // Pre-fetch pending bookings to reject them atomically inside the transaction
       final pendingQuery = await _firestore
@@ -27,6 +43,7 @@ class TripOperationsService {
           .where('loadId', isEqualTo: booking.loadId)
           .where('status', isEqualTo: 'pending')
           .get(const GetOptions(source: Source.server));
+
 
       await _firestore.runTransaction((transaction) async {
         final loadRef = _firestore.collection('loads').doc(booking.loadId);
@@ -81,6 +98,7 @@ class TripOperationsService {
             'updatedAt': FieldValue.serverTimestamp(),
           });
         } catch (e) {
+
           if (kDebugMode) {
             debugPrint('FAILED AT STEP 1: $e');
           }
@@ -138,6 +156,29 @@ class TripOperationsService {
         } catch (e) {
           if (kDebugMode) {
             debugPrint('FAILED AT STEP 4: $e');
+          }
+          rethrow;
+        }
+
+        // Unlock the Contact Exchange with the Provider's JWT-verified phone.
+        // This is atomic — if any part of the acceptance transaction fails, this update rolls back.
+        // The Truck Owner's escrowed phone (truckOwnerPhone) is NEVER modified here.
+        // The Provider is not permitted to read a pending exchange (by design), so we perform a
+        // blind update. The Firestore security rule enforces the pending→accepted transition and
+        // JWT phone-number validation server-side. If the contact exchange document is missing
+        // (e.g. legacy booking with no escrow), the transaction will correctly fail and roll back.
+        try {
+          final contactRef = _firestore
+              .collection('contact_exchanges')
+              .doc(booking.bookingId);
+          transaction.update(contactRef, {
+            'providerPhone': providerPhone,
+            'status': 'accepted',
+            'unlockedAt': FieldValue.serverTimestamp(),
+          });
+        } catch (e) {
+          if (kDebugMode) {
+            debugPrint('FAILED AT STEP 5 (contact exchange unlock): $e');
           }
           rethrow;
         }
@@ -230,6 +271,18 @@ class TripOperationsService {
   /// Requests a booking using a TRANSACTION to prevent duplicates.
   Future<void> requestBooking(LoadModel load, AppUser currentUser) async {
 
+    // Obtain the verified phone number exclusively from Firebase Auth.
+    // Never accept phoneNumber as an argument — the JWT is the only trusted source.
+    final firebaseUser = FirebaseAuth.instance.currentUser;
+    final truckOwnerPhone = firebaseUser?.phoneNumber;
+
+    if (truckOwnerPhone == null || truckOwnerPhone.isEmpty) {
+      throw Exception(
+        'No verified phone number found. '
+        'Please ensure Phone Authentication is complete before requesting a booking.',
+      );
+    }
+
     try {
       await _firestore.runTransaction((transaction) async {
         // 1. Verify load is still open
@@ -245,23 +298,21 @@ class TripOperationsService {
           throw Exception('This load is no longer available (current status: ${currentStatus.displayName}).');
         }
 
-        // 2. Query existing bookings for this truck owner and load
-        // NOTE: We can't query collections directly in a transaction reliably without limits,
-        // so we check if they already have an active booking outside, or use a known document ID pattern.
-        // Actually, let's use a deterministic ID for bookings to enforce uniqueness!
-        // Deterministic ID: loadId_truckOwnerUid
+        // 2. Deterministic booking ID: loadId_truckOwnerUid
         final bookingId = '${load.loadId}_${currentUser.id}';
         final bookingRef = _firestore.collection('bookings').doc(bookingId);
         
         final bookingSnap = await transaction.get(bookingRef);
+
+        final contactRef = _firestore.collection('contact_exchanges').doc(bookingId);
+        final contactSnap = await transaction.get(contactRef);
         
         if (bookingSnap.exists) {
           final existingStatus = bookingSnap.data()!['status'] as String?;
           if (existingStatus == 'pending' || existingStatus == 'accepted') {
             throw Exception('You already have a $existingStatus booking for this load.');
           }
-          // If rejected, we allow a retry by overwriting or updating. 
-          // For simplicity, we overwrite.
+          // If rejected/withdrawn, allow re-request by overwriting.
         }
 
         final booking = BookingModel(
@@ -289,9 +340,41 @@ class TripOperationsService {
           createdAt: DateTime.now(),
         );
         transaction.set(notifRef, notif.toJson());
+
+        // 3. Escrow the Truck Owner's verified phone number in the Contact Exchange.
+        //    The document is created in a 'pending' state — Provider phone is NOT included yet.
+        //    This entire block rolls back automatically if the booking transaction fails.
+
+
+        // Allow re-creation if this is a re-request (previous was rejected/withdrawn).
+        // Do not overwrite an accepted exchange.
+        final existingContactStatus = contactSnap.exists
+            ? (contactSnap.data()!['status'] as String?)
+            : null;
+        if (existingContactStatus != 'accepted') {
+          final contactExchange = ContactExchangeModel(
+            bookingId: bookingId,
+            loadId: load.loadId,
+            truckOwnerUid: currentUser.id,
+            truckOwnerPhone: truckOwnerPhone,
+            providerUid: load.providerUid,
+            status: 'pending',
+          );
+          transaction.set(contactRef, contactExchange.toJson());
+        }
       });
 
+      AnalyticsService.logBookingConverted(
+        loadId: load.loadId,
+        bookingId: '${load.loadId}_${currentUser.id}',
+      );
     } catch (e, stack) {
+      ObservabilityService.reportNonFatalError(
+        errorCode: 'BOOKING_FAILURE',
+        exception: e,
+        stackTrace: stack,
+        context: 'requestBooking',
+      );
       if (kDebugMode) {
         debugPrint('REQUEST BOOKING FAILED: $e');
       }
@@ -319,16 +402,15 @@ class TripOperationsService {
         TripStatus.loaded,
         TripStatus.in_transit,
         TripStatus.delivered,
-      };
-      const providerStatuses = {
         TripStatus.completed,
       };
+      const providerStatuses = <TripStatus>{};
 
       if (currentUser.role == UserRole.truckOwner && !truckOwnerStatuses.contains(nextStatus)) {
-        throw Exception('Truck Owners can only update field-level statuses (departure, loaded, transit, delivered).');
+        throw Exception('Truck Owners can only update field-level statuses and complete the trip.');
       }
       if (currentUser.role == UserRole.provider && !providerStatuses.contains(nextStatus)) {
-        throw Exception('Providers can only confirm trip completion.');
+        throw Exception('Providers cannot update trip status directly.');
       }
 
       final batch = _firestore.batch();
@@ -390,7 +472,19 @@ class TripOperationsService {
       }
 
       await batch.commit();
-    } catch (e) {
+
+      AnalyticsService.logTripStatusChanged(
+        loadId: load.loadId,
+        previousStatus: currentStatus.name,
+        newStatus: nextStatus.name,
+      );
+    } catch (e, stack) {
+      ObservabilityService.reportNonFatalError(
+        errorCode: 'TRIP_STATUS_FAILURE',
+        exception: e,
+        stackTrace: stack,
+        context: 'advanceLoadStatus',
+      );
       if (kDebugMode) {
         debugPrint('ADVANCE STATUS FAILED: $e');
       }
@@ -419,6 +513,14 @@ class TripOperationsService {
         createdAt: DateTime.now(),
       );
       batch.set(notifRef, notif.toJson());
+
+      // Withdraw the contact exchange atomically.
+      // The Truck Owner's escrowed phone becomes inaccessible once withdrawn.
+      final contactRef = _firestore.collection('contact_exchanges').doc(booking.bookingId);
+      batch.update(contactRef, {
+        'status': 'withdrawn',
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
 
       await batch.commit();
     } catch (e) {
@@ -457,9 +559,13 @@ class TripOperationsService {
 
       final batch = _firestore.batch();
 
-      // Delete all related bookings
+      // Delete all related bookings and their corresponding contact exchanges.
+      // bookingIds are deterministic (loadId_truckOwnerUid), so no extra scan is needed.
       for (var doc in bookingsQuery.docs) {
         batch.delete(doc.reference);
+        // Clean up the corresponding contact exchange document.
+        final contactRef = _firestore.collection('contact_exchanges').doc(doc.id);
+        batch.delete(contactRef);
       }
 
       // Delete the load
